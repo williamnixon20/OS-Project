@@ -6,4 +6,4 @@ Kit untuk IF2230 - Sistem Operasi 2023
 
 # How to run
 1. Be on root directory, run `make build`.
-2. Execute OS iso, run `qemu-system-i386 -s -cdrom bin/OS2023.iso`
+2. To execute OS iso, run `make run`

@@ -6,7 +6,7 @@ GENISO        = genisoimage
 # Directory
 SOURCE_FOLDER = src
 OUTPUT_FOLDER = bin
-ISO_NAME      = os2023
+ISO_NAME      = OS2023
 
 # Flags
 WARNING_CFLAG = -Wall -Wextra -Werror
@@ -18,7 +18,7 @@ LFLAGS        = -T $(SOURCE_FOLDER)/linker.ld -melf_i386
 
 
 run: all
-	@qemu-system-i386 -s -S -cdrom $(OUTPUT_FOLDER)/$(ISO_NAME).iso
+	@qemu-system-i386 -s -cdrom $(OUTPUT_FOLDER)/$(ISO_NAME).iso
 all: build
 build: iso
 clean:
