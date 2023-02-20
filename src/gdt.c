@@ -14,38 +14,55 @@ struct GlobalDescriptorTable global_descriptor_table = {
             0,
             0,
             0,
+
             0,
             0,
             0,
             0,
+            0,
+
             0,
             0,
             0
         },
         {
             (uint16_t) 0xFFFFF,
+
             0,  
             0,
+
             0xA,
             1,
             0,
             1,
+
+            0,
+
+            0,
             0,
             1,
             1,
+
             0
         },
         {
             (uint16_t) 0xFFFFF,
+            
             0,
             0,
+
             0x2,
             1,
             0,
             1,
+
+            0,
+
+            0,
             0,
             1,
             1,
+
             0
         }
     }
