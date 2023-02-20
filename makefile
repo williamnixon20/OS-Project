@@ -32,6 +32,7 @@ kernel:
 	@${CC} ${CFLAGS} src/framebuffer.c -o bin/framebuffer.o -c
 	@${CC} ${CFLAGS} src/portio.c -o bin/portio.o -c
 	@${CC} ${CFLAGS} src/stdmem.c -o bin/stdmem.o -c
+	@${CC} ${CFLAGS} src/gdt.c -o bin/gdt.o -c
 	@$(LIN) $(LFLAGS) bin/*.o -o $(OUTPUT_FOLDER)/kernel
 	@echo Linking object files and generate elf32...
 	@rm -f *.o
