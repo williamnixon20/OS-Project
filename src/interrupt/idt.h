@@ -72,7 +72,9 @@ struct InterruptDescriptorTable {
 
  /* TODO: */
 struct IDTR {
- /* TODO: */
+    uint16_t limit;
+    // ???
+    uint64_t base;
 } __attribute__((packed));
 
 
