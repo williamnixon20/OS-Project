@@ -34,10 +34,21 @@ extern struct IDTR _idt_idtr;
  * ...
  */
 struct IDTGate {
+     /* TODO: */
     // First 32-bit (Bit 0 to 31)
     uint16_t offset_low;
+    uint16_t segment_selector;
 
-    // TODO : Implement
+    /* Isinya semua nol sepanjang 8 bit*/
+    uint8_t reserved;
+    /* Bagian flags */
+    /* Bit 8-12 */
+    uint8_t _r_bit_1 : 5;
+    /* Bit 13-14 */
+    uint8_t dpl : 2;
+    /* Bit 15 */
+    uint8_t p : 1;
+    uint16_t offset_high;
 } __attribute__((packed));
 
 /**
@@ -46,8 +57,11 @@ struct IDTGate {
  *
  * ...
  */
-// TODO : Implement
-// ...
+
+  /* TODO: */
+struct InterruptDescriptorTable {
+    struct SegmentDescriptor table[IDT_MAX_ENTRY_COUNT];
+} __attribute__((packed));
 
 /**
  * IDTR, carrying information where's the IDT located and size.
@@ -55,9 +69,11 @@ struct IDTGate {
  *
  * ...
  */
-// TODO : Implement
-// ...
 
+ /* TODO: */
+struct IDTR {
+ /* TODO: */
+} __attribute__((packed));
 
 
 /**
