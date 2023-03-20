@@ -60,7 +60,7 @@ struct IDTGate {
 
   /* TODO: */
 struct InterruptDescriptorTable {
-    struct SegmentDescriptor table[IDT_MAX_ENTRY_COUNT];
+    struct IDTGate table[IDT_MAX_ENTRY_COUNT];
 } __attribute__((packed));
 
 /**
