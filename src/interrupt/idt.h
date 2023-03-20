@@ -39,15 +39,15 @@ struct IDTGate {
     uint16_t offset_low;
     uint16_t segment_selector;
 
-    /* Isinya semua nol sepanjang 8 bit*/
-    uint8_t reserved;
-    /* Bagian flags */
-    /* Bit 8-12 */
-    uint8_t _r_bit_1 : 5;
-    /* Bit 13-14 */
+    uint8_t _reserved : 5;
+    uint8_t _r_bit_1 : 3;
+    uint8_t _r_bit_2 : 3;
+    uint8_t gate_32 : 1;
+    uint8_t _r_bit_3 : 1;
     uint8_t dpl : 2;
-    /* Bit 15 */
-    uint8_t p : 1;
+    uint8_t valid_bit : 1;
+
+
     uint16_t offset_high;
 } __attribute__((packed));
 
@@ -61,7 +61,7 @@ struct IDTGate {
   /* TODO: */
 struct InterruptDescriptorTable {
     struct IDTGate table[IDT_MAX_ENTRY_COUNT];
-} __attribute__((packed));
+} __attribute__((packed)) interrupt_descriptor_table;
 
 /**
  * IDTR, carrying information where's the IDT located and size.
