@@ -28,7 +28,11 @@ clean:
 
 kernel:
 	@$(ASM) $(AFLAGS) $(SOURCE_FOLDER)/kernel_loader.s -o $(OUTPUT_FOLDER)/kernel_loader.o
-	@${CC} -ffreestanding -fshort-wchar -g -nostdlib -nostdinc -fno-builtin -fno-stack-protector -nostartfiles -nodefaultlibs -Wall -Wextra -Werror -m32 -c -Isrc src/kernel.c -o bin/kernel.o
+	@${CC} ${CFLAGS} src/kernel.c -o bin/kernel.o -c
+	@${CC} ${CFLAGS} src/framebuffer.c -o bin/framebuffer.o -c
+	@${CC} ${CFLAGS} src/portio.c -o bin/portio.o -c
+	@${CC} ${CFLAGS} src/stdmem.c -o bin/stdmem.o -c
+	@${CC} ${CFLAGS} src/gdt.c -o bin/gdt.o -c
 	@$(LIN) $(LFLAGS) bin/*.o -o $(OUTPUT_FOLDER)/kernel
 	@echo Linking object files and generate elf32...
 	@rm -f *.o
@@ -38,7 +42,6 @@ iso: kernel
 	@cp $(OUTPUT_FOLDER)/kernel     $(OUTPUT_FOLDER)/iso/boot/
 	@cp other/grub1                 $(OUTPUT_FOLDER)/iso/boot/grub/
 	@cp $(SOURCE_FOLDER)/menu.lst   $(OUTPUT_FOLDER)/iso/boot/grub/
-# TODO: Create ISO image
 	@cd bin
 	@cd bin; echo $(shell pwd); genisoimage -R                   \
 	-b boot/grub/grub1         \
