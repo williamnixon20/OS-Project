@@ -6,7 +6,7 @@ GENISO        = genisoimage
 # Directory
 SOURCE_FOLDER = src
 OUTPUT_FOLDER = bin
-ISO_NAME      = OS2023
+ISO_NAME      = os2023
 
 # Flags
 WARNING_CFLAG = -Wall -Wextra -Werror
@@ -35,6 +35,7 @@ kernel:
 	@${CC} ${CFLAGS} src/gdt.c -o bin/gdt.o -c
 	@${CC} ${CFLAGS} src/interrupt/idt.c -o bin/idt.o -c
 	@${CC} ${CFLAGS} src/interrupt/interrupt.c -o bin/interrupt.o -c
+	@${CC} ${CFLAGS} src/keyboard/keyboard.c -o bin/keyboard.o -c
 	@${ASM} ${AFLAGS} src/interrupt/intsetup.s -o bin/intsetup.o 
 	@$(LIN) $(LFLAGS) bin/*.o -o $(OUTPUT_FOLDER)/kernel
 	@echo Linking object files and generate elf32...
@@ -54,8 +55,7 @@ iso: kernel
 	-input-charset utf8        \
 	-quiet                     \
 	-boot-info-table           \
-	-o OS2023.iso              \
+	-o os2023.iso              \
 	iso
 	@cd ..
 	@rm -r $(OUTPUT_FOLDER)/iso/
-	
