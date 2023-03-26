@@ -33,6 +33,9 @@ kernel:
 	@${CC} ${CFLAGS} src/portio.c -o bin/portio.o -c
 	@${CC} ${CFLAGS} src/stdmem.c -o bin/stdmem.o -c
 	@${CC} ${CFLAGS} src/gdt.c -o bin/gdt.o -c
+	@${CC} ${CFLAGS} src/interrupt/idt.c -o bin/idt.o -c
+	@${CC} ${CFLAGS} src/interrupt/interrupt.c -o bin/interrupt.o -c
+	@${ASM} ${AFLAGS} src/interrupt/intsetup.s -o bin/intsetup.o 
 	@$(LIN) $(LFLAGS) bin/*.o -o $(OUTPUT_FOLDER)/kernel
 	@echo Linking object files and generate elf32...
 	@rm -f *.o
@@ -55,4 +58,4 @@ iso: kernel
 	iso
 	@cd ..
 	@rm -r $(OUTPUT_FOLDER)/iso/
-
+	
