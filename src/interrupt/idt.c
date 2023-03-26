@@ -1,5 +1,15 @@
 #include "idt.h"
 
+struct InterruptDescriptorTable interrupt_descriptor_table =
+{
+    /* data */
+    .table = {}
+};
+
+struct IDTR _idt_idtr = {
+    sizeof(interrupt_descriptor_table), &interrupt_descriptor_table
+};
+
 void initialize_idt(void) {
     /* TODO : 
    * Iterate all isr_stub_table,
@@ -21,8 +31,10 @@ void initialize_idt(void) {
 void set_interrupt_gate(uint8_t int_vector, void *handler_address, uint16_t gdt_seg_selector, uint8_t privilege) {
     struct IDTGate *idt_int_gate = &interrupt_descriptor_table.table[int_vector];
     // TODO : Set handler offset, privilege & segment
-    idt_int_gate->offset_low = &handler_address;
-    idt_int_gate->offset_high = &handler_address;
+    
+    uint32_t int_handler_address = (uint32_t) handler_address;
+    idt_int_gate->offset_low = (uint16_t) int_handler_address;
+    idt_int_gate->offset_high = (uint16_t) (int_handler_address >> 16);
     idt_int_gate->segment_selector = gdt_seg_selector;
     idt_int_gate->dpl = privilege;
     
