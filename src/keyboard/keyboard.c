@@ -56,28 +56,31 @@ void keyboard_isr(void) {
         char     mapped_char = keyboard_scancode_1_to_ascii_map[scancode];
         // TODO : Implement scancode processing
         if (mapped_char > 0) {
-          char     char_buf[KEYBOARD_BUFFER_SIZE];
           keyboard_state.keyboard_buffer[keyboard_state.buffer_index] = mapped_char;
-          get_keyboard_buffer(char_buf);
 
-          uint8_t row;
-          uint8_t col;
+          uint16_t pos = framebuffer_get_cursor();
+          uint8_t row = pos / RESOLUTION_WIDTH;
+          uint8_t col = pos % RESOLUTION_WIDTH;
 
           if (mapped_char == '\b' && keyboard_state.buffer_index > 0) {
-            keyboard_state.buffer_index--;
-            row = keyboard_state.buffer_index / 80;
-            col = keyboard_state.buffer_index % 80;
+            row = (pos - 1) / RESOLUTION_WIDTH;
+            col = (pos - 1) % RESOLUTION_WIDTH;
+
             framebuffer_write(row, col, 0x0, 0xF, 0);
             framebuffer_set_cursor(row, col);
-          } else if(mapped_char != '\b') {
-            row = keyboard_state.buffer_index / 80;
-            col = keyboard_state.buffer_index % 80;
 
+            keyboard_state.buffer_index--;
+
+          } else if(mapped_char != '\b') {
             framebuffer_write(row, col, mapped_char, 0xF, 0);
+
+            row = (pos + 1) / RESOLUTION_WIDTH;
+            col = (pos + 1) % RESOLUTION_WIDTH;
+
+            framebuffer_set_cursor(row, col);
+
             keyboard_state.buffer_index++;
-            framebuffer_set_cursor(row, col + 1);
           }
-          // TODO: backspace
         }
     }
     pic_ack(IRQ_KEYBOARD);

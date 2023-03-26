@@ -6,6 +6,8 @@
 #define MEMORY_FRAMEBUFFER (uint8_t *) 0xB8000
 #define CURSOR_PORT_CMD    0x03D4
 #define CURSOR_PORT_DATA   0x03D5
+#define RESOLUTION_WIDTH   80
+#define RESOLUTION_HEIGHT  25
 
 /**
  * Terminal framebuffer
@@ -41,5 +43,14 @@ void framebuffer_set_cursor(uint8_t r, uint8_t c);
  * 
  */
 void framebuffer_clear(void);
+
+/**
+ * @return pos = row * RESOLUTION_WIDTH + col
+ * To obtain the coordinates, just calculate
+ * row = pos / RESOLUTION_WIDTH
+ * col = pos % RESOLUTION_WIDTH
+ * https://wiki.osdev.org/Text_Mode_Cursor
+*/
+uint16_t framebuffer_get_cursor(void);
 
 #endif
