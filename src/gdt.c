@@ -6,64 +6,73 @@
  * Initial SegmentDescriptor already set properly according to GDT definition in Intel Manual & OSDev.
  * Table entry : [{Null Descriptor}, {Kernel Code}, {Kernel Data (variable, etc)}, ...].
  */
+const int LIMIT = 0xFFFFF;
+const int NULL = 0;
+const int BASE = 0;
+const int TYPE_BIT = 1;
+const int TYPE_CODE = 0xA;
+const int TYPE_DATA = 0x2;
+const int PRESENT = 1;
+const int GRANULARITY = 1;
+const int OP_SIZE = 1;
 struct GlobalDescriptorTable global_descriptor_table = {
     .table = {
         {
-            0,
-            0,
-            0,
-            0,
-            0,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
 
-            0,
-            0,
-            0,
-            0,
-            0,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
 
-            0,
-            0,
-            0
+            NULL,
+            NULL,
+            NULL
         },
         {
-            (uint16_t) 0xFFFFF,
+            (uint16_t) LIMIT,
 
-            0,  
-            0,
+            BASE,  
+            BASE,
 
-            0xA,
-            1,
-            0,
-            1,
+            TYPE_CODE,
+            TYPE_BIT,
+            NULL,
+            PRESENT,
 
-            0xF,
+            (char) LIMIT,
 
-            0,
-            0,
-            1,
-            1,
+            NULL,
+            NULL,
+            OP_SIZE,
+            GRANULARITY,
 
-            0
+            BASE
         },
         {
-            (uint16_t) 0xFFFFF,
+            (uint16_t) LIMIT,
             
-            0,
-            0,
+            BASE,
+            BASE,
 
-            0x2,
-            1,
-            0,
-            1,
+            TYPE_DATA,
+            TYPE_BIT,
+            NULL,
+            PRESENT,
 
-            0xF,
+            (char) LIMIT,
 
-            0,
-            0,
-            1,
-            1,
+            NULL,
+            NULL,
+            OP_SIZE,
+            GRANULARITY,
 
-            0
+            BASE
         }
     }
 };
