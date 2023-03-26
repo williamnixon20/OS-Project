@@ -36,7 +36,7 @@ struct GlobalDescriptorTable global_descriptor_table = {
             0,
             1,
 
-            0,
+            0xF,
 
             0,
             0,
@@ -56,7 +56,7 @@ struct GlobalDescriptorTable global_descriptor_table = {
             0,
             1,
 
-            0,
+            0xF,
 
             0,
             0,

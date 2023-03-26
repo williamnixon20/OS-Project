@@ -19,6 +19,7 @@ void kernel_setup(void) {
     framebuffer_clear();
     framebuffer_set_cursor(0, 0);
     activate_keyboard_interrupt();
+    __asm__("int $0x4");
     while (TRUE) {
       keyboard_state_activate();
     }
