@@ -23,13 +23,6 @@ void kernel_setup(void)
   __asm__("int $0x4");
   while (TRUE)
   {
-    if (getEnterFound())
-    {
-      keyboard_state_deactivate();
-    }
-    else
-    {
-      keyboard_state_activate();
-    }
+    keyboard_state_activate();
   }
 }
