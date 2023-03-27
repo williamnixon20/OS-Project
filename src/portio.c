@@ -23,3 +23,13 @@ uint8_t in(uint16_t port) {
     );
     return result;
 }
+
+void out16(uint16_t port, uint16_t data) {
+    __asm__ volatile("outw %0, %1" : : "a"(data), "Nd"(port));
+}
+
+uint16_t in16(uint16_t port) {
+    uint16_t ret;
+    __asm__ volatile("inw %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}

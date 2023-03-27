@@ -7,23 +7,29 @@ GENISO        = genisoimage
 SOURCE_FOLDER = src
 OUTPUT_FOLDER = bin
 ISO_NAME      = os2023
+DISK_NAME     = storage
 
 # Flags
 WARNING_CFLAG = -Wall -Wextra -Werror
 DEBUG_CFLAG   = -ffreestanding -fshort-wchar -g
 STRIP_CFLAG   = -nostdlib -nostdinc -fno-builtin -fno-stack-protector -nostartfiles -nodefaultlibs
-CFLAGS        = $(DEBUG_CFLAG) $(WARNING_CFLAG) $(STRIP_CFLAG) -m32 -c -I$(SOURCE_FOLDER)
+CFLAGS        = $(DEBUG_CFLAG) $(WARNING_CFLAG) $(STRIP_CFLAG) -m32 -c -I$(SOURCE_FOLDER) -O
 AFLAGS        = -f elf32 -g -F dwarf
 LFLAGS        = -T $(SOURCE_FOLDER)/linker.ld -melf_i386
 
 
 run: all
-	@qemu-system-i386 -s -cdrom $(OUTPUT_FOLDER)/$(ISO_NAME).iso
+	@echo if you havent already, please run make disk first;
+	@qemu-system-i386 -s -drive file=${OUTPUT_FOLDER}/storage.bin,format=raw,if=ide,index=0,media=disk  -cdrom $(OUTPUT_FOLDER)/$(ISO_NAME).iso
+
+	# @qemu-system-i386 -s -S -drive file=${OUTPUT_FOLDER}/storage.bin,format=raw,if=ide,index=0,media=disk -cdrom $(OUTPUT_FOLDER)/$(ISO_NAME).iso
+	
 all: build
 build: iso
 clean:
 	rm -rf *.o *.iso $(OUTPUT_FOLDER)/kernel
-
+disk:
+	@qemu-img create -f raw $(OUTPUT_FOLDER)/$(DISK_NAME).bin 4M
 
 
 kernel:
@@ -37,6 +43,8 @@ kernel:
 	@${CC} ${CFLAGS} src/interrupt/interrupt.c -o bin/interrupt.o -c
 	@${CC} ${CFLAGS} src/keyboard/keyboard.c -o bin/keyboard.o -c
 	@${ASM} ${AFLAGS} src/interrupt/intsetup.s -o bin/intsetup.o 
+	@${CC} ${CFLAGS} src/filesystem/disk.c -o bin/disk.o -c
+	@${CC} ${CFLAGS} src/filesystem/fat32.c -o bin/fat32.o -c
 	@$(LIN) $(LFLAGS) bin/*.o -o $(OUTPUT_FOLDER)/kernel
 	@echo Linking object files and generate elf32...
 	@rm -f *.o

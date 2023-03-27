@@ -2,7 +2,7 @@
 #define _FAT32_H
 
 #include "disk.h"
-#include "stdtype.h"
+#include "../lib-header/stdtype.h"
 
 
 /**
@@ -244,6 +244,6 @@ int8_t write(struct FAT32DriverRequest request);
  * @param request buf and buffer_size is unused
  * @return Error code: 0 success - 1 not found - 2 folder is not empty - -1 unknown
  */
-int8_t delete(struct FAT32DriverRequest request);
+int8_t _delete(struct FAT32DriverRequest request);
 
 #endif
