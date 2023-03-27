@@ -34,14 +34,11 @@ struct KeyboardDriverState
 {
     bool read_extended_mode;
     bool keyboard_input_on;
-    bool enterFound;
     uint8_t buffer_index;
     char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
 } __attribute((packed));
 
 /* -- Driver Interfaces -- */
-// Set enterFound = true
-void activateEnterFound(void);
 // Activate keyboard ISR / start listen keyboard & save to buffer
 void keyboard_state_activate(void);
 
@@ -51,8 +48,6 @@ void keyboard_state_deactivate(void);
 // Get keyboard buffer values - @param buf Pointer to char buffer, recommended size at least KEYBOARD_BUFFER_SIZE
 void get_keyboard_buffer(char *buf);
 
-// get enterfound status
-bool getEnterFound(void);
 // Check whether keyboard ISR is active or not - @return Equal with keyboard_input_on value
 bool is_keyboard_blocking(void);
 

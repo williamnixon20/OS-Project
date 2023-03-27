@@ -268,11 +268,6 @@ const char keyboard_scancode_1_to_ascii_map[256] = {
     0,
 };
 
-void activateEnterFound(void)
-{
-  keyboard_state.enterFound = TRUE;
-}
-
 void keyboard_state_activate(void)
 {
   keyboard_state.keyboard_input_on = TRUE;
@@ -297,10 +292,6 @@ bool is_keyboard_blocking(void)
   return keyboard_state.keyboard_input_on;
 }
 
-bool getEnterFound()
-{
-  return keyboard_state.enterFound;
-}
 void keyboard_isr(void)
 {
   if (!keyboard_state.keyboard_input_on)
@@ -328,13 +319,12 @@ void keyboard_isr(void)
 
         keyboard_state.buffer_index--;
       }
-      else if (mapped_char == '\n')
+      else if (mapped_char == '\n' && row < RESOLUTION_HEIGHT)
       {
-        row = (row + 1) % RESOLUTION_HEIGHT;
+        row = (row + 1);
         col = 0;
         framebuffer_set_cursor(row, col);
-        // keyboard_state.buffer_index++;
-        activateEnterFound();
+        keyboard_state.buffer_index = 0;
       }
       else if (mapped_char != '\b')
       {
@@ -347,6 +337,7 @@ void keyboard_isr(void)
 
         keyboard_state.buffer_index++;
       }
+      // printf("%d", keyboard_state.buffer_index);
     }
   }
   pic_ack(IRQ_KEYBOARD);
