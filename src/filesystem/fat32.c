@@ -21,7 +21,7 @@ const uint8_t fs_signature[BLOCK_SIZE] = {
  */
 
 uint32_t cluster_to_lba(uint32_t cluster) {
-    return cluster * CLUSTER_BLOCK_COUNT;
+    return BOOT_SECTOR + cluster * CLUSTER_BLOCK_COUNT;
 };
 
 /**
@@ -74,35 +74,12 @@ bool is_empty_storage(void) {
  * and initialized root directory) into cluster number 1
  */
 void create_fat32(void){
-    // uint8_t boot_sector[BLOCK_SIZE];
-    // int fat[BLOCK_SIZE];
-    // struct FAT32DirectoryTable root_dir;
-
-    // memset(boot_sector, 0, BLOCK_SIZE);
-    // memcpy(boot_sector, fs_signature, BLOCK_SIZE);
-
-    // memset(fat, 0, BLOCK_SIZE);
-    // fat[0] = CLUSTER_0_VALUE;
-    // fat[1] = CLUSTER_1_VALUE;
-
-    // // init_directory_table(&root_dir, "ROOT", 0);
-
-    // write_blocks(boot_sector, 0, 1);
-    // write_blocks(fat, 1, 1);
-    // // write_clusters(&root_dir, 2, 1);
-    write_clusters(fs_signature, 0, 1);
-    struct FAT32FileAllocationTable newTable;
-    newTable.cluster_map[0] = CLUSTER_0_VALUE;
-    // char* hahaha = "bekok";
-    write_clusters(&newTable.cluster_map[0], FAT_CLUSTER_NUMBER, 1);
-    newTable.cluster_map[1] = CLUSTER_1_VALUE;
-    write_clusters(&newTable.cluster_map[1], FAT_CLUSTER_NUMBER+1, 1);
-    newTable.cluster_map[2] = FAT32_FAT_END_OF_FILE;
-    write_clusters(&newTable.cluster_map[2], FAT_CLUSTER_NUMBER+2, 1);
-    // for (int i = 3; i < CLUSTER_MAP_SIZE; i++) {
-    //     newTable.cluster_map[i] = FAT32_FAT_END_OF_FILE;;
-    // }
-    // write_clusters(newTable.cluster_map, FAT_CLUSTER_NUMBER, 3);
+    write_blocks(&fs_signature, BOOT_SECTOR, 1);
+    struct FAT32FileAllocationTable table;
+    table.cluster_map[0] = CLUSTER_0_VALUE;
+    table.cluster_map[1] = CLUSTER_1_VALUE;
+    table.cluster_map[2] = ROOT_CLUSTER_NUMBER;
+    write_clusters(table.cluster_map, FAT_CLUSTER_NUMBER, 1);
 }
 
 /**
@@ -110,13 +87,11 @@ void create_fat32(void){
  * Else, read and cache entire FileAllocationTable (located at cluster number 1) into driver state
  */
 void initialize_filesystem_fat32(void) {
-    //DEBUG ONLY
-    create_fat32();
-    // if (is_empty_storage()) {
-    //     create_fat32();
-    // } else {
-    //     //TODO
-    // }
+    if (is_empty_storage()) {
+        create_fat32();
+    } else {
+        //TODO
+    }
 };
 
 /**
@@ -128,24 +103,7 @@ void initialize_filesystem_fat32(void) {
  * @param cluster_count  Cluster count to write, due limitation of write_blocks block_count 255 => max cluster_count = 63
  */
 void write_clusters(const void *ptr, uint32_t cluster_number, uint8_t cluster_count) {
-    int size_ptr = sizeof(ptr);
-
-    for (int i= 0; i < cluster_count; i++) {
-
-    struct ClusterBuffer write_buffer;
-    memset(&write_buffer, 0, CLUSTER_SIZE);
-    int cluster_memsize = CLUSTER_SIZE*(i+1);
-    if (cluster_memsize < size_ptr) {
-        memcpy(&write_buffer, ptr + cluster_memsize, CLUSTER_SIZE);
-    } else {
-        if ((size_ptr - cluster_memsize - CLUSTER_SIZE) < 0) {
-            return;
-        }
-        memcpy(&write_buffer, ptr + cluster_memsize, size_ptr - cluster_memsize - CLUSTER_SIZE);   
-    }
-    int lba = cluster_to_lba(cluster_number + i);
-    write_blocks(&write_buffer, lba, 1);
-    }
+    write_blocks(ptr, cluster_to_lba(cluster_number), cluster_count * CLUSTER_BLOCK_COUNT);
 }
 
 /**
@@ -156,7 +114,9 @@ void write_clusters(const void *ptr, uint32_t cluster_number, uint8_t cluster_co
  * @param cluster_number Cluster number to read
  * @param cluster_count  Cluster count to read, due limitation of read_blocks block_count 255 => max cluster_count = 63
  */
-void read_clusters(void *ptr, uint32_t cluster_number, uint8_t cluster_count);
+void read_clusters(void *ptr, uint32_t cluster_number, uint8_t cluster_count) {
+    read_clusters(ptr, cluster_to_lba(cluster_number), cluster_count * CLUSTER_BLOCK_COUNT);
+};
 
 
 
