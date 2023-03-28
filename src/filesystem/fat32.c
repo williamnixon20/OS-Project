@@ -3,6 +3,8 @@
 #include "disk.h"
 #include "../lib-header/stdmem.h"
 
+struct FAT32DriverState driver_state;
+
 const uint8_t fs_signature[BLOCK_SIZE] = {
     'C', 'o', 'u', 'r', 's', 'e', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',  ' ',
     'D', 'e', 's', 'i', 'g', 'n', 'e', 'd', ' ', 'b', 'y', ' ', ' ', ' ', ' ',  ' ',
@@ -43,7 +45,9 @@ void init_directory_table(struct FAT32DirectoryTable *dir_table, char *name, uin
  * @return True if memcmp(boot_sector, fs_signature) returning inequality
  */
 bool is_empty_storage(void) {
-    if (memcmp(BOOT_SECTOR, fs_signature, BLOCK_SIZE) != 0) {
+    struct ClusterBuffer buffer;
+    read_blocks(buffer.buf, BOOT_SECTOR, 1);
+    if (memcmp(buffer.buf, fs_signature, BLOCK_SIZE) != 0) {
         return TRUE;
     }
     return FALSE;
@@ -56,11 +60,10 @@ bool is_empty_storage(void) {
  */
 void create_fat32(void){
     write_blocks(&fs_signature, BOOT_SECTOR, 1);
-    struct FAT32FileAllocationTable table;
-    table.cluster_map[0] = CLUSTER_0_VALUE;
-    table.cluster_map[1] = CLUSTER_1_VALUE;
-    table.cluster_map[2] = ROOT_CLUSTER_NUMBER;
-    write_clusters(table.cluster_map, FAT_CLUSTER_NUMBER, 1);
+    driver_state.fat_table.cluster_map[0] = CLUSTER_0_VALUE;
+    driver_state.fat_table.cluster_map[1] = CLUSTER_1_VALUE;
+    driver_state.fat_table.cluster_map[2] = FAT32_FAT_END_OF_FILE;
+    write_clusters(driver_state.fat_table.cluster_map, FAT_CLUSTER_NUMBER, 1);
 }
 
 /**
@@ -71,8 +74,9 @@ void initialize_filesystem_fat32(void) {
     if (is_empty_storage()) {
         create_fat32();
     } else {
-        //TODO
+        read_clusters(driver_state.fat_table.cluster_map, FAT_CLUSTER_NUMBER, 1);
     }
+
 };
 
 /**
@@ -96,7 +100,7 @@ void write_clusters(const void *ptr, uint32_t cluster_number, uint8_t cluster_co
  * @param cluster_count  Cluster count to read, due limitation of read_blocks block_count 255 => max cluster_count = 63
  */
 void read_clusters(void *ptr, uint32_t cluster_number, uint8_t cluster_count) {
-    read_clusters(ptr, cluster_to_lba(cluster_number), cluster_count * CLUSTER_BLOCK_COUNT);
+    read_blocks(ptr, cluster_to_lba(cluster_number), cluster_count * CLUSTER_BLOCK_COUNT);
 };
 
 
@@ -114,7 +118,23 @@ void read_clusters(void *ptr, uint32_t cluster_number, uint8_t cluster_count) {
  *                buffer_size must be exactly sizeof(struct FAT32DirectoryTable)
  * @return Error code: 0 success - 1 not a folder - 2 not found - -1 unknown
  */
-int8_t read_directory(struct FAT32DriverRequest request);
+int8_t read_directory(struct FAT32DriverRequest request) {
+    uint32_t parent_cluster = request.parent_cluster_number;
+    uint32_t fat_table_content = driver_state.fat_table.cluster_map[parent_cluster]; 
+    
+    if (fat_table_content != FAT32_FAT_END_OF_FILE) {
+        return 1;
+    }
+    if (fat_table_content == FAT32_FAT_EMPTY_ENTRY) {
+        return 2;
+    }
+
+    read_clusters(driver_state.dir_table_buf.table, request.parent_cluster_number, 1);
+    // if (memcmp(driver_state.dir_table_buf.table[0].name, request.name, 8) != 0) {
+    //     return -1;
+    // }
+    return 0;
+};
 
 /**
  * FAT32 read, read a file from file system.
@@ -122,7 +142,9 @@ int8_t read_directory(struct FAT32DriverRequest request);
  * @param request All attribute will be used for read, buffer_size will limit reading count
  * @return Error code: 0 success - 1 not a file - 2 not enough buffer - 3 not found - -1 unknown
  */
-int8_t read(struct FAT32DriverRequest request);
+int8_t read(struct FAT32DriverRequest request) {
+
+};
 
 /**
  * FAT32 write, write a file or folder to file system.
@@ -130,7 +152,8 @@ int8_t read(struct FAT32DriverRequest request);
  * @param request All attribute will be used for write, buffer_size == 0 then create a folder / directory
  * @return Error code: 0 success - 1 file/folder already exist - 2 invalid parent cluster - -1 unknown
  */
-int8_t write(struct FAT32DriverRequest request);
+int8_t write(struct FAT32DriverRequest request) {
+};
 
 
 /**
