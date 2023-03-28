@@ -22,11 +22,26 @@ void kernel_setup(void)
   framebuffer_clear();
   framebuffer_write(0, 0, 0x0, 0xF, 0xF);
   framebuffer_set_cursor(1,3);
+  initialize_filesystem_fat32();
+  // struct FAT32DirectoryTable testing;
+  // char *nama = "hehe";
+  // init_directory_table(&testing, nama, 0);
+   struct ClusterBuffer cbuf[5];
+    for (uint32_t i = 0; i < 5; i++)
+        for (uint32_t j = 0; j < CLUSTER_SIZE; j++)
+            cbuf[i].buf[j] = i + 'a';
 
-  struct FAT32DirectoryTable testing;
-  char *nama = "hehe";
-  init_directory_table(&testing, nama, 0);
-  
+    struct FAT32DriverRequest request = {
+        .buf                   = cbuf,
+        .name                  = "ikanaide",
+        .ext                   = "uwu",
+        .parent_cluster_number = ROOT_CLUSTER_NUMBER,
+        .buffer_size           = 0,
+    } ;
+
+    write(request);  // Create folder "ikanaide"
+    memcpy(request.name, "kano1\0\0\0", 8);
+
   // char* baru = "hahahihi";
   // write_blocks(baru, 0, 1);
   // write_blocks(baru, 1, 1);
@@ -36,7 +51,6 @@ void kernel_setup(void)
       // write_clusters(baru, 2,1);
       //   write_clusters(baru, 3,1);
       //     write_clusters(baru, 4,1);
-  initialize_filesystem_fat32();
   // char* aneh = "hahaohoho";
   // write_clusters(aneh, 1, 1);
   activate_keyboard_interrupt();
