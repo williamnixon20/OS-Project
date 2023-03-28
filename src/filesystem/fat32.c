@@ -211,20 +211,28 @@ int8_t write(struct FAT32DriverRequest request) {
         struct FAT32DirectoryEntry newEntry;
         memset(&newEntry, 0, sizeof(newEntry));
         driver_state.fat_table.cluster_map[emptyCluster] = FAT32_FAT_END_OF_FILE;
-        struct FAT32FileAllocationTable table = driver_state.fat_table;
-        write_clusters(&table, FAT_CLUSTER_NUMBER, 1);
         createDirectoryEntry(request, &newEntry, 0);
         addWriteToParentDir(request, newEntry);
     } else {
-        // int total_cluster = ceil((float)request.buffer_size / CLUSTER_SIZE);
+        int total_cluster = (request.buffer_size +CLUSTER_SIZE-1) / CLUSTER_SIZE;
+        for (int i = 0; i < total_cluster; i++) {
+            int emptyCluster = getEmptyCluster();
+            if (emptyCluster == -1) {
+                return -1;
+            }
+            write_clusters(request.buf + i*CLUSTER_SIZE, emptyCluster, 1);
+            driver_state.fat_table.cluster_map[emptyCluster] = FAT32_FAT_EMPTY_ENTRY;
+            if (i == 0) {
+                struct FAT32DirectoryEntry newEntry;
+                createDirectoryEntry(request, &newEntry, emptyCluster);
+                addWriteToParentDir(request, newEntry);
+            }
+        }
         int emptyCluster = getEmptyCluster();
         if (emptyCluster == -1) {
             return -1;
         }
-        write_clusters(request.buf, emptyCluster, 1);
-        struct FAT32DirectoryEntry newEntry;
-        createDirectoryEntry(request, &newEntry, emptyCluster);
-        addWriteToParentDir(request, newEntry);
+        driver_state.fat_table.cluster_map[emptyCluster] = FAT32_FAT_END_OF_FILE;
     }
     writeFATDriver();
     refreshFATDriver();
