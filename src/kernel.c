@@ -26,7 +26,7 @@ void kernel_setup(void)
   struct FAT32DirectoryTable testing;
   char *nama = "hehe";
   init_directory_table(&testing, nama, 0);
-
+  
   // char* baru = "hahahihi";
   // write_blocks(baru, 0, 1);
   // write_blocks(baru, 1, 1);

@@ -122,9 +122,7 @@ int8_t read_directory(struct FAT32DriverRequest request);
  * @param request All attribute will be used for read, buffer_size will limit reading count
  * @return Error code: 0 success - 1 not a file - 2 not enough buffer - 3 not found - -1 unknown
  */
-int8_t read(struct FAT32DriverRequest request){
-    
-}
+int8_t read(struct FAT32DriverRequest request);
 
 /**
  * FAT32 write, write a file or folder to file system.
@@ -149,4 +147,5 @@ struct FAT32DirectoryEntry dirtable_linear_search(struct FAT32DirectoryTable *di
             return dir_table->table[i];
         }
     }
+    return (struct FAT32DirectoryEntry) {0};
 }
