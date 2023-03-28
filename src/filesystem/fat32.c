@@ -214,25 +214,27 @@ int8_t write(struct FAT32DriverRequest request) {
         createDirectoryEntry(request, &newEntry, 0);
         addWriteToParentDir(request, newEntry);
     } else {
-        int total_cluster = (request.buffer_size +CLUSTER_SIZE-1) / CLUSTER_SIZE;
+        int total_cluster = (request.buffer_size + CLUSTER_SIZE-1) / CLUSTER_SIZE;
+        int nextEmpty;
         for (int i = 0; i < total_cluster; i++) {
             int emptyCluster = getEmptyCluster();
-            if (emptyCluster == -1) {
+            driver_state.fat_table.cluster_map[emptyCluster] = -1; // -1 cuma placeholder
+            nextEmpty = getEmptyCluster();
+            if (emptyCluster == -1 || nextEmpty == -1) {
                 return -1;
             }
+
             write_clusters(request.buf + i*CLUSTER_SIZE, emptyCluster, 1);
-            driver_state.fat_table.cluster_map[emptyCluster] = FAT32_FAT_EMPTY_ENTRY;
+            driver_state.fat_table.cluster_map[emptyCluster] = nextEmpty;
+
             if (i == 0) {
                 struct FAT32DirectoryEntry newEntry;
                 createDirectoryEntry(request, &newEntry, emptyCluster);
                 addWriteToParentDir(request, newEntry);
             }
         }
-        int emptyCluster = getEmptyCluster();
-        if (emptyCluster == -1) {
-            return -1;
-        }
-        driver_state.fat_table.cluster_map[emptyCluster] = FAT32_FAT_END_OF_FILE;
+
+        driver_state.fat_table.cluster_map[nextEmpty] = FAT32_FAT_END_OF_FILE;
     }
     writeFATDriver();
     refreshFATDriver();
@@ -265,6 +267,8 @@ void createDirectoryEntry(struct FAT32DriverRequest request, struct FAT32Directo
     if (request.buffer_size == 0) {
         cluster_inf = request.parent_cluster_number;
         newEntri->attribute = ATTR_SUBDIRECTORY;
+    } else {
+        memcpy(newEntri->ext, request.ext, 3);
     }
     memcpy(newEntri->name, request.name, 8);
     newEntri->filesize = request.buffer_size;
@@ -275,7 +279,7 @@ void createDirectoryEntry(struct FAT32DriverRequest request, struct FAT32Directo
 
 int32_t getEmptyCluster() {
     for (int i = 0; i < CLUSTER_MAP_SIZE; i++) {
-        if (driver_state.fat_table.cluster_map[i] == FAT32_FAT_EMPTY_ENTRY) {
+        if (driver_state.fat_table.cluster_map[i] == FAT32_FAT_EMPTY_ENTRY) {;
             return i;
         }
     }
