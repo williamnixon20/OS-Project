@@ -102,7 +102,6 @@ void read_clusters(void *ptr, uint32_t cluster_number, uint8_t cluster_count) {
 
 
 
-
 /* -- CRUD Operation -- */
 
 /**
@@ -115,16 +114,7 @@ void read_clusters(void *ptr, uint32_t cluster_number, uint8_t cluster_count) {
  *                buffer_size must be exactly sizeof(struct FAT32DirectoryTable)
  * @return Error code: 0 success - 1 not a folder - 2 not found - -1 unknown
  */
-int8_t read_directory(struct FAT32DriverRequest request){
-
-    if (request.buffer_size != sizeof(struct FAT32DirectoryTable)){
-        return 0;
-    }
-
-    struct FAT32DirectoryTable *dir_table = (struct FAT32DirectoryTable *) request.buf;
-
-}
-
+int8_t read_directory(struct FAT32DriverRequest request);
 
 /**
  * FAT32 read, read a file from file system.
@@ -132,7 +122,9 @@ int8_t read_directory(struct FAT32DriverRequest request){
  * @param request All attribute will be used for read, buffer_size will limit reading count
  * @return Error code: 0 success - 1 not a file - 2 not enough buffer - 3 not found - -1 unknown
  */
-int8_t read(struct FAT32DriverRequest request);
+int8_t read(struct FAT32DriverRequest request){
+    
+}
 
 /**
  * FAT32 write, write a file or folder to file system.
@@ -150,3 +142,11 @@ int8_t write(struct FAT32DriverRequest request);
  * @return Error code: 0 success - 1 not found - 2 folder is not empty - -1 unknown
  */
 int8_t _delete(struct FAT32DriverRequest request);
+
+struct FAT32DirectoryEntry dirtable_linear_search(struct FAT32DirectoryTable *dir_table, char *name){
+    for (uint8_t i = 0; i < CLUSTER_SIZE / sizeof(struct FAT32DirectoryEntry); i++) {
+        if (memcmp(dir_table->table[i].name, name, 8) == 0) {
+            return dir_table->table[i];
+        }
+    }
+}

@@ -22,6 +22,11 @@ void kernel_setup(void)
   framebuffer_clear();
   framebuffer_write(0, 0, 0x0, 0xF, 0xF);
   framebuffer_set_cursor(1,3);
+
+  struct FAT32DirectoryTable testing;
+  char *nama = "hehe";
+  init_directory_table(&testing, nama, 0);
+
   // char* baru = "hahahihi";
   // write_blocks(baru, 0, 1);
   // write_blocks(baru, 1, 1);
