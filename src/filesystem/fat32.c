@@ -31,30 +31,11 @@ uint32_t cluster_to_lba(uint32_t cluster) {
  * @param name               8-byte char for directory name
  * @param parent_dir_cluster Parent directory cluster number
  */
-void init_directory_table(struct FAT32DirectoryTable *dir_table, char *name, uint32_t parent_dir_cluster);
-    // dir_table->parent_dir_cluster = parent_dir_cluster;
-    // dir_table->dir_entry[0].ext[0] = 0x00;
-    // dir_table->dir_entry[0].ext[1] = 0x00;
-    // dir_table->dir_entry[0].ext[2] = 0x00;
-    // dir_table->dir_entry[0].attr = 0x10;
-    // dir_table->dir_entry[0].reserved = 0x00;
-
-    // dir_table->dir_entry[0].ctime_ms = 0x00;
-    // dir_table->dir_entry[0].ctime = 0x00;
-    // dir_table->dir_entry[0].cdate = 0x00;
-    // dir_table->dir_entry[0].adate = 0x00;
-    // dir_table->dir_entry[0].first_cluster_high = 0x00;
-
-    // dir_table->dir_entry[0].mtime = 0x00;
-    // dir_table->dir_entry[0].mdate = 0x00;
-    // dir_table->dir_entry[0].first_cluster_low = 0x00;
-    // dir_table->dir_entry[0].file_size = 0x00;
-
-    // dir_table->dir_entry[1].name[0] = 0x2E;
-    // dir_table->dir_entry[1].name[1] = 0x20;
-    // dir_table->dir_entry[1].name[2] = 0x20;
-    // dir_table->dir_entry[1].name[3] = 0x20;
-    // dir_table->dir_entry[1].name[4] = 0;
+void init_directory_table(struct FAT32DirectoryTable *dir_table, char *name, uint32_t parent_dir_cluster){;
+    memcpy(dir_table->table[0].name, name, 8);
+    dir_table->table[0].cluster_low = (uint16_t) parent_dir_cluster;
+    dir_table->table[0].cluster_high = (uint16_t) (parent_dir_cluster >> 16);
+}
 
 /**
  * Checking whether filesystem signature is missing or not in boot sector
@@ -134,7 +115,15 @@ void read_clusters(void *ptr, uint32_t cluster_number, uint8_t cluster_count) {
  *                buffer_size must be exactly sizeof(struct FAT32DirectoryTable)
  * @return Error code: 0 success - 1 not a folder - 2 not found - -1 unknown
  */
-int8_t read_directory(struct FAT32DriverRequest request);
+int8_t read_directory(struct FAT32DriverRequest request){
+
+    if (request.buffer_size != sizeof(struct FAT32DirectoryTable)){
+        return 0;
+    }
+
+    struct FAT32DirectoryTable *dir_table = (struct FAT32DirectoryTable *) request.buf;
+
+}
 
 
 /**
