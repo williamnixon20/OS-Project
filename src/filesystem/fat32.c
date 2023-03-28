@@ -73,7 +73,7 @@ bool is_empty_storage(void){
 void create_fat32(void){
     uint8_t boot_sector[BLOCK_SIZE];
     int fat[BLOCK_SIZE];
-    struct FAT32DirectoryTable root_dir;
+    // struct FAT32DirectoryTable root_dir;
 
     memset(boot_sector, 0, BLOCK_SIZE);
     memcpy(boot_sector, fs_signature, BLOCK_SIZE);

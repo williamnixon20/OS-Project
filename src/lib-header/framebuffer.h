@@ -53,4 +53,8 @@ void framebuffer_clear(void);
 */
 uint16_t framebuffer_get_cursor(void);
 
+/**
+ * scroll buffer down to one row
+*/
+void framebuffer_scroll(void);
 #endif

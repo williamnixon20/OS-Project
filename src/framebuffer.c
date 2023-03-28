@@ -36,5 +36,22 @@ uint16_t framebuffer_get_cursor(void) {
     out(CURSOR_PORT_CMD, 0x0E);
     pos |= ((uint16_t) in(CURSOR_PORT_DATA)) << 8;
 
-    return pos;
+   return pos;
+}
+
+void framebuffer_scroll(void) {
+    uint8_t *where;
+
+    /* copying characters */
+    for (int row = 0; row < RESOLUTION_HEIGHT - 1; row++) {
+        for (int col = 0; col < RESOLUTION_WIDTH; col++) {
+            where = MEMORY_FRAMEBUFFER + ((row + 1) * RESOLUTION_WIDTH * 2 + col*2);
+            framebuffer_write(row, col, *where, 0xF, 0x0);
+        }
+    }
+
+    /* clear last row */
+    for (int col = 0; col < RESOLUTION_WIDTH; col++) {
+        framebuffer_write(RESOLUTION_HEIGHT - 1, col, 0x0, 0xF, 0x0);
+    }
 }
