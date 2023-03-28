@@ -20,6 +20,7 @@ const uint8_t fs_signature[BLOCK_SIZE] = {
  */
 
 uint32_t cluster_to_lba(uint32_t cluster);
+    // 	return this->FirstUsableCluster + cluster * this->SectorsPerCluster - (2 * this->SectorsPerCluster);
 
 /**
  * Initialize DirectoryTable value with parent DirectoryEntry and directory name
@@ -29,20 +30,64 @@ uint32_t cluster_to_lba(uint32_t cluster);
  * @param parent_dir_cluster Parent directory cluster number
  */
 void init_directory_table(struct FAT32DirectoryTable *dir_table, char *name, uint32_t parent_dir_cluster);
+    // dir_table->parent_dir_cluster = parent_dir_cluster;
+    // dir_table->dir_entry[0].ext[0] = 0x00;
+    // dir_table->dir_entry[0].ext[1] = 0x00;
+    // dir_table->dir_entry[0].ext[2] = 0x00;
+    // dir_table->dir_entry[0].attr = 0x10;
+    // dir_table->dir_entry[0].reserved = 0x00;
+
+    // dir_table->dir_entry[0].ctime_ms = 0x00;
+    // dir_table->dir_entry[0].ctime = 0x00;
+    // dir_table->dir_entry[0].cdate = 0x00;
+    // dir_table->dir_entry[0].adate = 0x00;
+    // dir_table->dir_entry[0].first_cluster_high = 0x00;
+
+    // dir_table->dir_entry[0].mtime = 0x00;
+    // dir_table->dir_entry[0].mdate = 0x00;
+    // dir_table->dir_entry[0].first_cluster_low = 0x00;
+    // dir_table->dir_entry[0].file_size = 0x00;
+
+    // dir_table->dir_entry[1].name[0] = 0x2E;
+    // dir_table->dir_entry[1].name[1] = 0x20;
+    // dir_table->dir_entry[1].name[2] = 0x20;
+    // dir_table->dir_entry[1].name[3] = 0x20;
+    // dir_table->dir_entry[1].name[4] = 0;
 
 /**
  * Checking whether filesystem signature is missing or not in boot sector
  * 
  * @return True if memcmp(boot_sector, fs_signature) returning inequality
  */
-bool is_empty_storage(void);
+bool is_empty_storage(void){
+    uint8_t boot_sector[BLOCK_SIZE];
+    read_blocks(boot_sector, 0, 1);
+    return memcmp(boot_sector, fs_signature, BLOCK_SIZE);
+}
 
 /**
  * Create new FAT32 file system. Will write fs_signature into boot sector and 
  * proper FileAllocationTable (contain CLUSTER_0_VALUE, CLUSTER_1_VALUE, 
  * and initialized root directory) into cluster number 1
  */
-void create_fat32(void);
+void create_fat32(void){
+    uint8_t boot_sector[BLOCK_SIZE];
+    int fat[BLOCK_SIZE];
+    struct FAT32DirectoryTable root_dir;
+
+    memset(boot_sector, 0, BLOCK_SIZE);
+    memcpy(boot_sector, fs_signature, BLOCK_SIZE);
+
+    memset(fat, 0, BLOCK_SIZE);
+    fat[0] = CLUSTER_0_VALUE;
+    fat[1] = CLUSTER_1_VALUE;
+
+    // init_directory_table(&root_dir, "ROOT", 0);
+
+    write_blocks(boot_sector, 0, 1);
+    write_blocks(fat, 1, 1);
+    // write_clusters(&root_dir, 2, 1);
+}
 
 /**
  * Initialize file system driver state, if is_empty_storage() then create_fat32()
