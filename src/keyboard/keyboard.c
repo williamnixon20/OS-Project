@@ -5,7 +5,7 @@
 
 static struct KeyboardDriverState keyboard_state = {
     .read_extended_mode = FALSE,
-    .keyboard_input_on = TRUE,
+    .keyboard_input_on = FALSE,
     .buffer_index = 0};
 
 const char keyboard_scancode_1_to_ascii_map[256] = {
@@ -271,6 +271,7 @@ const char keyboard_scancode_1_to_ascii_map[256] = {
 void keyboard_state_activate(void)
 {
   keyboard_state.keyboard_input_on = TRUE;
+  activate_keyboard_interrupt();
 }
 
 void keyboard_state_deactivate(void)
@@ -319,11 +320,16 @@ void keyboard_isr(void)
 
         keyboard_state.buffer_index--;
       }
-      else if (mapped_char == '\n' && row < RESOLUTION_HEIGHT)
+      else if (mapped_char == '\n')
       {
-        row = (row + 1);
-        col = 0;
-        framebuffer_set_cursor(row, col);
+        if (row == RESOLUTION_HEIGHT - 1) {
+          framebuffer_scroll();
+          framebuffer_set_cursor(row, 0);
+        } else {
+          row = (row + 1);
+          col = 0;
+          framebuffer_set_cursor(row, col);
+        }
         keyboard_state.buffer_index = 0;
       }
       else if (mapped_char != '\b')
@@ -337,7 +343,6 @@ void keyboard_isr(void)
 
         keyboard_state.buffer_index++;
       }
-      // printf("%d", keyboard_state.buffer_index);
     }
   }
   pic_ack(IRQ_KEYBOARD);
