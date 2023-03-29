@@ -39,9 +39,17 @@ void kernel_setup(void)
         .buffer_size           = 0,
     } ;
 
-    write(request);  // Create folder "ikanaide"
-    memcpy(request.name, "kano1\0\0\0", 8);
+    // write(request);  // Create folder "ikanaide"
+    // memcpy(request.name, "kano1\0\0\0", 8);
+    // write(request);  // Create folder "kano1"
+    // memcpy(request.name, "ikanaide", 8);
 
+    // request.parent_cluster_number = 3;
+    // memcpy(request.name, "hihihi", 8);
+    // write(request);
+    memcpy(request.name, "daijoubu", 8);
+    request.buffer_size = 5*CLUSTER_SIZE;
+    write(request);  // Create fragmented file "daijoubu"
   // char* baru = "hahahihi";
   // write_blocks(baru, 0, 1);
   // write_blocks(baru, 1, 1);
