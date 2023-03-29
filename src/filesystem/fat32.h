@@ -246,4 +246,13 @@ int8_t write(struct FAT32DriverRequest request);
  */
 int8_t _delete(struct FAT32DriverRequest request);
 
+struct FAT32DirectoryEntry* dirtable_linear_search(struct FAT32DirectoryEntry *dir_table, struct FAT32DriverRequest request, bool isFile);
+int32_t getEmptyCluster();
+void createDirectoryEntry(struct FAT32DriverRequest request, struct FAT32DirectoryEntry* newEntri, uint32_t cluster_inf);
+void addWriteToParentDir(struct FAT32DirectoryTable request, struct FAT32DirectoryEntry entry, uint32_t parent_cluster);
+void refreshFATDriver();
+void writeFATDriver();
+bool dir_not_empty(struct FAT32DirectoryTable table);
+bool clusterEmpty(uint32_t cluster_num);
+void removeFromParentDir(struct FAT32DirectoryTable parentTable, struct FAT32DriverRequest req);
 #endif
