@@ -259,9 +259,10 @@ int8_t write(struct FAT32DriverRequest request) {
                 createDirectoryEntry(request, &newEntry, emptyCluster);
                 addWriteToParentDir(parentFolder, newEntry, request.parent_cluster_number);
             }
+            if (i == total_cluster-1) {
+                driver_state.fat_table.cluster_map[emptyCluster] = FAT32_FAT_END_OF_FILE;
+            }
         }
-
-        driver_state.fat_table.cluster_map[nextEmpty] = FAT32_FAT_END_OF_FILE;
     }
     writeFATDriver();
     refreshFATDriver();
@@ -276,7 +277,7 @@ int8_t write(struct FAT32DriverRequest request) {
  * @return Error code: 0 success - 1 not found - 2 folder is not empty - -1 unknown
  */
 int8_t _delete(struct FAT32DriverRequest request) {
-    bool isFile = request.buffer_size != 0;
+    bool isFile = memcmp(request.ext, "\0\0\0", 3) != 0;
     struct FAT32DirectoryTable parentFolder;
     read_clusters(&parentFolder, request.parent_cluster_number, 1);
     
