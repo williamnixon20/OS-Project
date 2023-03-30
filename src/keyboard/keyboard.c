@@ -271,7 +271,6 @@ const char keyboard_scancode_1_to_ascii_map[256] = {
 void keyboard_state_activate(void)
 {
   keyboard_state.keyboard_input_on = TRUE;
-  activate_keyboard_interrupt();
 }
 
 void keyboard_state_deactivate(void)
