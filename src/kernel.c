@@ -13,19 +13,20 @@
 
 void kernel_setup(void)
 {
-  // See time for debug
-  read_rtc();
-  int s = second;
-  int mm = minute;
-  int hh = hour;
-  int dd = day;
-  int mo = month;
-  int yr = year;
-  s =  s + mm + hh + dd + mo + yr;
+  // // See time for debug
+  // read_rtc();
+  // int s = second;
+  // int mm = minute;
+  // int hh = hour;
+  // int dd = day;
+  // int mo = month;
+  // int yr = year;
+  // s =  s + mm + hh + dd + mo + yr;
 
   enter_protected_mode(&_gdt_gdtr);
   pic_remap();
   initialize_idt();
+  activate_keyboard_interrupt();
   framebuffer_clear();
   initialize_filesystem_fat32();
   activate_keyboard_interrupt();
