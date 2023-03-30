@@ -2,6 +2,7 @@
 #include "fat32.h"
 #include "disk.h"
 #include "../lib-header/stdmem.h"
+#include "cmostime.h"
 
 struct FAT32DriverState driver_state;
 
@@ -40,6 +41,10 @@ void init_directory_table(struct FAT32DirectoryTable *dir_table, char *name, uin
     dir_table->table[0].cluster_high = (uint16_t) (parent_dir_cluster >> 16);
     dir_table->table[0].attribute = ATTR_SUBDIRECTORY;
     dir_table->table[0].user_attribute = UATTR_NOT_EMPTY;
+    dir_table->table[0].create_date = getDateEncode();
+    dir_table->table[0].create_time = getTimeEncode();
+    dir_table->table[0].modified_time = getTimeEncode();
+    dir_table->table[0].modified_date = getDateEncode();
 }
 
 /**
@@ -146,8 +151,8 @@ int8_t read_directory(struct FAT32DriverRequest request) {
     if (!entry) {
         return 2;
     } else {
-
-
+        entry->access_date = getDateEncode();
+        write_clusters(request.buf, parent_cluster, 1);
         uint32_t folder_cluster_num =  (((uint32_t) entry->cluster_high) << 16)|(entry->cluster_low);
         read_clusters(request.buf, folder_cluster_num, 1);
         return 0;
@@ -186,6 +191,9 @@ int8_t read(struct FAT32DriverRequest request) {
     if (entry->filesize > request.buffer_size) {
         return 2;
     }
+    entry->access_date = getDateEncode();
+    write_clusters(&parentFolder, request.parent_cluster_number, 1);
+
     uint32_t cluster_file = (((uint32_t)entry->cluster_high) << 16) | entry->cluster_low;
     int iteration = 0;
     while (TRUE) {
@@ -333,6 +341,10 @@ void createDirectoryEntry(struct FAT32DriverRequest request, struct FAT32Directo
         memcpy(newEntri->ext, request.ext, 3);
     }
     memcpy(newEntri->name, request.name, 8);
+    newEntri->create_date = getDateEncode();
+    newEntri->create_time = getTimeEncode();
+    newEntri->modified_time = getTimeEncode();
+    newEntri->modified_date = getDateEncode();
     newEntri->filesize = request.buffer_size;
     newEntri->user_attribute = UATTR_NOT_EMPTY;
     newEntri->cluster_low = (uint16_t) cluster_inf;

@@ -9,21 +9,28 @@
 #include "keyboard/keyboard.h"
 #include "filesystem/fat32.h"
 #include "filesystem/disk.h"
+#include "filesystem/cmostime.h"
 
 void kernel_setup(void)
 {
-  // uint32_t a;
-  // uint32_t volatile b = 0x0000BABE;
-  // __asm__("mov $0xCAFE0000, %0" : "=r"(a));
-  // while (TRUE) b += 1;
+  // See time for debug
+  read_rtc();
+  int s = second;
+  int mm = minute;
+  int hh = hour;
+  int dd = day;
+  int mo = month;
+  int yr = year;
+  s =  s + mm + hh + dd + mo + yr;
+
   enter_protected_mode(&_gdt_gdtr);
   pic_remap();
   initialize_idt();
   framebuffer_clear();
-  framebuffer_write(0, 0, 0x0, 0xF, 0xF);
-  framebuffer_set_cursor(1,3);
   initialize_filesystem_fat32();
-    activate_keyboard_interrupt();
+  activate_keyboard_interrupt();
+
+  // To avoid warnings error, we use _delete instaed of delete
     struct ClusterBuffer cbuf[5];
     for (uint32_t i = 0; i < 5; i++)
         for (uint32_t j = 0; j < CLUSTER_SIZE; j++)
@@ -32,43 +39,34 @@ void kernel_setup(void)
     struct FAT32DriverRequest request = {
         .buf                   = cbuf,
         .name                  = "ikanaide",
-        .ext                   = "\0\0\0",
+        .ext                   = "uwu",
         .parent_cluster_number = ROOT_CLUSTER_NUMBER,
         .buffer_size           = 0,
     } ;
 
     write(request);  // Create folder "ikanaide"
-    request.parent_cluster_number = 3;
-    memcpy(request.name, "ikanaid2", 8);
+    memcpy(request.name, "kano1\0\0\0", 8);
+    write(request);  // Create folder "kano1"
+    memcpy(request.name, "ikanaide", 8);
     memcpy(request.ext, "\0\0\0", 3);
-    write(request);
-    request.parent_cluster_number = 4;
+    _delete(request); // Delete first folder, thus creating hole in FS
+
+    memcpy(request.name, "daijoubu", 8);
     memcpy(request.ext, "uwu", 3);
     request.buffer_size = 5*CLUSTER_SIZE;
-    write(request);
-    // delete(request);
-    // _delete(request); // Delete first folder, thus creating hole in FS
+    write(request);  // Create fragmented file "daijoubu"
 
-    // memcpy(request.name, "daijoubu", 8);
-    // request.buffer_size = 5*CLUSTER_SIZE;
-    // write(request);  // Create fragmented file "daijoubu"
+    struct ClusterBuffer readcbuf;
+    read_clusters(&readcbuf, ROOT_CLUSTER_NUMBER+1, 1); 
+    // If read properly, readcbuf should filled with 'a'
 
-    // struct ClusterBuffer readcbuf;
-    // read_clusters(&readcbuf, ROOT_CLUSTER_NUMBER+1, 1); 
-    // // If read properly, readcbuf should filled with 'a'
+    request.buffer_size = CLUSTER_SIZE;
+    read(request);   // Failed read due not enough buffer size
+    struct ClusterBuffer bufferEmpty[5];
+    request.buf = bufferEmpty;
+    request.buffer_size = 5*CLUSTER_SIZE;
+    read(request);   // Success read on file "daijoubu"
 
-    // request.buffer_size = CLUSTER_SIZE;
-    // int resbabibu = read(request);   // Failed read due not enough buffer size
-    // struct ClusterBuffer cbuf2[5];
-    // for (uint32_t i = 0; i < 5; i++)
-    //     for (uint32_t j = 0; j < CLUSTER_SIZE; j++)
-    //         cbuf[i].buf[j] = 0;
-    // request.buf = cbuf2;
-    // request.buffer_size = 5*CLUSTER_SIZE;
-    // int resbabibu2 = read(request);   // Success read on file "daijoubu"
-    // resbabibu = resbabibu2 + resbabibu;
-
-  activate_keyboard_interrupt();
   while (TRUE)
   {
     keyboard_state_activate();
