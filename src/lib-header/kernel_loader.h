@@ -8,6 +8,7 @@
  * @warning Invalid address / definition of GDT will cause bootloop after calling this function.
  */
 extern void enter_protected_mode(struct GDTR *gdtr);
+
 // Optional linker variable : Pointing to kernel start & end address
 // Note : Use & operator, example : a = (uint32_t) &_linker_kernel_stack_top;
 extern uint32_t _linker_kernel_virtual_addr_start;

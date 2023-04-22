@@ -74,6 +74,7 @@ enter_protected_mode:
     ; Far jump to update cs register
     ; Warning: Invalid GDT will raise exception in any instruction below
     jmp 0x8:flush_cs
+    
 flush_cs:
     ; Update all segment register
     mov ax, 10h
@@ -86,7 +87,8 @@ flush_cs:
 set_tss_register:
     mov ax, 0x28 | 0   ; GDT TSS Selector, ring 0
     ltr ax
-    
+    ret
+
 global kernel_execute_user_program            ; execute user program from kernel
 kernel_execute_user_program:
     mov  eax, 0x20 | 0x3

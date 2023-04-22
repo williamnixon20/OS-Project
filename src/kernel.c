@@ -14,65 +14,65 @@
 
 // void kernel_setup(void)
 // {
-//   // // See time for debug
-//   // read_rtc();
-//   // int s = second;
-//   // int mm = minute;
-//   // int hh = hour;
-//   // int dd = day;
-//   // int mo = month;
-//   // int yr = year;
-//   // s =  s + mm + hh + dd + mo + yr;
+// //   // // See time for debug
+// //   // read_rtc();
+// //   // int s = second;
+// //   // int mm = minute;
+// //   // int hh = hour;
+// //   // int dd = day;
+// //   // int mo = month;
+// //   // int yr = year;
+// //   // s =  s + mm + hh + dd + mo + yr;
 
-//   enter_protected_mode(&_gdt_gdtr);
-//   pic_remap();
-//   initialize_idt();
-//   activate_keyboard_interrupt();
-//   framebuffer_clear();
-//   initialize_filesystem_fat32();
-//   activate_keyboard_interrupt();
+// //   enter_protected_mode(&_gdt_gdtr);
+// //   pic_remap();
+// //   initialize_idt();
+// //   activate_keyboard_interrupt();
+// //   framebuffer_clear();
+// //   initialize_filesystem_fat32();
+// //   activate_keyboard_interrupt();
 
-//   // To avoid warnings error, we use _delete instaed of delete
-//     struct ClusterBuffer cbuf[5];
-//     for (uint32_t i = 0; i < 5; i++)
-//         for (uint32_t j = 0; j < CLUSTER_SIZE; j++)
-//             cbuf[i].buf[j] = i + 'a';
+// //   // To avoid warnings error, we use _delete instaed of delete
+// //     struct ClusterBuffer cbuf[5];
+// //     for (uint32_t i = 0; i < 5; i++)
+// //         for (uint32_t j = 0; j < CLUSTER_SIZE; j++)
+// //             cbuf[i].buf[j] = i + 'a';
 
-//     struct FAT32DriverRequest request = {
-//         .buf                   = cbuf,
-//         .name                  = "ikanaide",
-//         .ext                   = "uwu",
-//         .parent_cluster_number = ROOT_CLUSTER_NUMBER,
-//         .buffer_size           = 0,
-//     } ;
+// //     struct FAT32DriverRequest request = {
+// //         .buf                   = cbuf,
+// //         .name                  = "ikanaide",
+// //         .ext                   = "uwu",
+// //         .parent_cluster_number = ROOT_CLUSTER_NUMBER,
+// //         .buffer_size           = 0,
+// //     } ;
 
-//     write(request);  // Create folder "ikanaide"
-//     memcpy(request.name, "kano1\0\0\0", 8);
-//     write(request);  // Create folder "kano1"
-//     memcpy(request.name, "ikanaide", 8);
-//     memcpy(request.ext, "\0\0\0", 3);
-//     _delete(request); // Delete first folder, thus creating hole in FS
+// //     write(request);  // Create folder "ikanaide"
+// //     memcpy(request.name, "kano1\0\0\0", 8);
+// //     write(request);  // Create folder "kano1"
+// //     memcpy(request.name, "ikanaide", 8);
+// //     memcpy(request.ext, "\0\0\0", 3);
+// //     _delete(request); // Delete first folder, thus creating hole in FS
 
-//     memcpy(request.name, "daijoubu", 8);
-//     memcpy(request.ext, "uwu", 3);
-//     request.buffer_size = 5*CLUSTER_SIZE;
-//     write(request);  // Create fragmented file "daijoubu"
+// //     memcpy(request.name, "daijoubu", 8);
+// //     memcpy(request.ext, "uwu", 3);
+// //     request.buffer_size = 5*CLUSTER_SIZE;
+// //     write(request);  // Create fragmented file "daijoubu"
 
-//     struct ClusterBuffer readcbuf;
-//     read_clusters(&readcbuf, ROOT_CLUSTER_NUMBER+1, 1); 
-//     // If read properly, readcbuf should filled with 'a'
+// //     struct ClusterBuffer readcbuf;
+// //     read_clusters(&readcbuf, ROOT_CLUSTER_NUMBER+1, 1); 
+// //     // If read properly, readcbuf should filled with 'a'
 
-//     request.buffer_size = CLUSTER_SIZE;
-//     read(request);   // Failed read due not enough buffer size
-//     struct ClusterBuffer bufferEmpty[5];
-//     request.buf = bufferEmpty;
-//     request.buffer_size = 5*CLUSTER_SIZE;
-//     read(request);   // Success read on file "daijoubu"
+// //     request.buffer_size = CLUSTER_SIZE;
+// //     read(request);   // Failed read due not enough buffer size
+// //     struct ClusterBuffer bufferEmpty[5];
+// //     request.buf = bufferEmpty;
+// //     request.buffer_size = 5*CLUSTER_SIZE;
+// //     read(request);   // Success read on file "daijoubu"
 
-//   while (TRUE)
-//   {
-//     keyboard_state_activate();
-//   }
+// //   while (TRUE)
+// //   {
+// //     keyboard_state_activate();
+// //   }
 // }
 
 void kernel_setup(void) {
@@ -105,3 +105,4 @@ void kernel_setup(void) {
 
     while (TRUE);
 }
+
