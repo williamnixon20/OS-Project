@@ -21,7 +21,7 @@ LFLAGS        = -T $(SOURCE_FOLDER)/linker.ld -melf_i386
 run: all
 	@echo if you havent already, please run make disk first
 	@qemu-system-i386 -s -drive file=${OUTPUT_FOLDER}/storage.bin,format=raw,if=ide,index=0,media=disk  -cdrom $(OUTPUT_FOLDER)/$(ISO_NAME).iso	
-all: build
+all: clean disk inserter insert-shell build
 build: iso
 clean:
 	rm -rf $(OUTPUT_FOLDER)/*.o $(OUTPUT_FOLDER)/*.iso $(OUTPUT_FOLDER)/kernel
