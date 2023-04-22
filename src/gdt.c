@@ -116,7 +116,7 @@ struct GlobalDescriptorTable global_descriptor_table = {
             BASE
         }, // User Data Descriptor
         {
-            // .segment_high      = (sizeof(struct TSSEntry) & (0xF << 16)) >> 16,
+            .segment_limit      = (sizeof(struct TSSEntry) & (0xF << 16)) >> 16,
             .segment_low       = sizeof(struct TSSEntry),
             .base_high         = 0,
             .base_mid          = 0,

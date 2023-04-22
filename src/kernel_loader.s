@@ -84,8 +84,9 @@ flush_cs:
     ret
 
 set_tss_register:
-    mov ax, 0x28 | 0   ; GDT TSS Selector, ring 0
+    mov ax, 0x28 | 0 
     ltr ax
+    ret
     
 global kernel_execute_user_program            ; execute user program from kernel
 kernel_execute_user_program:
