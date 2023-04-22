@@ -4,7 +4,7 @@
 #include "../lib-header/stdmem.h"
 #include "cmostime.h"
 
-struct FAT32DriverState driver_state;
+struct FAT32DriverState driver_state = {0};
 
 const uint8_t fs_signature[BLOCK_SIZE] = {
     'C', 'o', 'u', 'r', 's', 'e', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',  ' ',
@@ -53,7 +53,7 @@ void init_directory_table(struct FAT32DirectoryTable *dir_table, char *name, uin
  * @return True if memcmp(boot_sector, fs_signature) returning inequality
  */
 bool is_empty_storage(void) {
-    struct ClusterBuffer buffer;
+    struct ClusterBuffer buffer = {0};
     read_blocks(buffer.buf, BOOT_SECTOR, 1);
     if (memcmp(buffer.buf, fs_signature, BLOCK_SIZE) != 0) {
         return TRUE;
@@ -72,7 +72,7 @@ void create_fat32(void){
     driver_state.fat_table.cluster_map[1] = CLUSTER_1_VALUE;
     driver_state.fat_table.cluster_map[2] = FAT32_FAT_END_OF_FILE;
     write_clusters(driver_state.fat_table.cluster_map, FAT_CLUSTER_NUMBER, 1);
-    struct FAT32DirectoryTable rootTable;
+    struct FAT32DirectoryTable rootTable = {0};
     init_directory_table(&rootTable, "root\0\0\0\0", ROOT_CLUSTER_NUMBER);
     write_clusters(&rootTable, ROOT_CLUSTER_NUMBER, 1);
 }
@@ -172,7 +172,7 @@ int8_t read(struct FAT32DriverRequest request) {
         return 1;
     }
 
-    struct FAT32DirectoryTable parentFolder;
+    struct FAT32DirectoryTable parentFolder = {0};
     if (clusterEmpty(request.parent_cluster_number)) {
         return -2;
     }
@@ -237,17 +237,18 @@ int8_t write(struct FAT32DriverRequest request) {
         if (emptyCluster == -1) {
             return -1;
         }
-        struct FAT32DirectoryTable newDir;
+        struct FAT32DirectoryTable newDir = {0};
         memset(&newDir, 0, sizeof(newDir));
         uint32_t parent_cluster = request.parent_cluster_number;
         init_directory_table(&newDir, request.name, parent_cluster);
         write_clusters(&newDir, emptyCluster, 1);
 
-        struct FAT32DirectoryEntry newEntry;
+        struct FAT32DirectoryEntry newEntry = {0};
         memset(&newEntry, 0, sizeof(newEntry));
         driver_state.fat_table.cluster_map[emptyCluster] = FAT32_FAT_END_OF_FILE;
         createDirectoryEntry(request, &newEntry, emptyCluster);
         addWriteToParentDir(parentFolder, newEntry, request.parent_cluster_number);
+        
     } else {
         int total_cluster = (request.buffer_size + CLUSTER_SIZE-1) / CLUSTER_SIZE;
         int nextEmpty;
@@ -263,7 +264,7 @@ int8_t write(struct FAT32DriverRequest request) {
             driver_state.fat_table.cluster_map[emptyCluster] = nextEmpty;
 
             if (i == 0) {
-                struct FAT32DirectoryEntry newEntry;
+                struct FAT32DirectoryEntry newEntry = {0};
                 createDirectoryEntry(request, &newEntry, emptyCluster);
                 addWriteToParentDir(parentFolder, newEntry, request.parent_cluster_number);
             }
@@ -285,7 +286,7 @@ int8_t write(struct FAT32DriverRequest request) {
  */
 int8_t _delete(struct FAT32DriverRequest request) {
     bool isFile = memcmp(request.ext, "\0\0\0", 3) != 0;
-    struct FAT32DirectoryTable parentFolder;
+    struct FAT32DirectoryTable parentFolder = {0};
     read_clusters(&parentFolder, request.parent_cluster_number, 1);
     
     if (parentFolder.table[0].attribute != ATTR_SUBDIRECTORY) {
@@ -295,7 +296,7 @@ int8_t _delete(struct FAT32DriverRequest request) {
     struct FAT32DirectoryEntry* entry =  dirtable_linear_search(parentFolder.table, request, isFile);
     if (entry) {
         if (entry->attribute == ATTR_SUBDIRECTORY) {
-            struct FAT32DirectoryTable currentFolder;
+            struct FAT32DirectoryTable currentFolder = {0};
             uint32_t cluster_num =  (((uint32_t) entry->cluster_high) << 16)|(entry->cluster_low);
             read_clusters(&currentFolder, cluster_num, 1);
             
@@ -325,7 +326,7 @@ int8_t _delete(struct FAT32DriverRequest request) {
 
 void removeFromParentDir(struct FAT32DirectoryTable parentTable, struct FAT32DriverRequest req) {
     bool isFile = req.buffer_size != 0;
-    struct FAT32DirectoryEntry emptyEntry;
+    struct FAT32DirectoryEntry emptyEntry = {0};
     memset(&emptyEntry, 0, sizeof(emptyEntry));
     struct FAT32DirectoryEntry *entry = dirtable_linear_search(parentTable.table, req, isFile);
     (*entry) = emptyEntry;
