@@ -41,10 +41,10 @@ void init_directory_table(struct FAT32DirectoryTable *dir_table, char *name, uin
     dir_table->table[0].cluster_high = (uint16_t) (parent_dir_cluster >> 16);
     dir_table->table[0].attribute = ATTR_SUBDIRECTORY;
     dir_table->table[0].user_attribute = UATTR_NOT_EMPTY;
-    dir_table->table[0].create_date = getDateEncode();
-    dir_table->table[0].create_time = getTimeEncode();
-    dir_table->table[0].modified_time = getTimeEncode();
-    dir_table->table[0].modified_date = getDateEncode();
+    // dir_table->table[0].create_date = getDateEncode();
+    // dir_table->table[0].create_time = getTimeEncode();
+    // dir_table->table[0].modified_time = getTimeEncode();
+    // dir_table->table[0].modified_date = getDateEncode();
 }
 
 /**
@@ -220,11 +220,11 @@ int8_t write(struct FAT32DriverRequest request) {
     
     struct FAT32DirectoryTable parentFolder;
     if (clusterEmpty(request.parent_cluster_number)) {
-        return -2;
+        return 2;
     }
     read_clusters(&parentFolder, request.parent_cluster_number, 1);
     if (parentFolder.table[0].attribute != ATTR_SUBDIRECTORY) {
-        return -2;
+        return 2;
     } 
 
     struct FAT32DirectoryEntry* entry =  dirtable_linear_search(parentFolder.table, request, isFile);
@@ -275,7 +275,6 @@ int8_t write(struct FAT32DriverRequest request) {
     writeFATDriver();
     refreshFATDriver();
     return 0;
-
 }
 
 /**
@@ -341,10 +340,10 @@ void createDirectoryEntry(struct FAT32DriverRequest request, struct FAT32Directo
         memcpy(newEntri->ext, request.ext, 3);
     }
     memcpy(newEntri->name, request.name, 8);
-    newEntri->create_date = getDateEncode();
-    newEntri->create_time = getTimeEncode();
-    newEntri->modified_time = getTimeEncode();
-    newEntri->modified_date = getDateEncode();
+    // newEntri->create_date = getDateEncode();
+    // newEntri->create_time = getTimeEncode();
+    // newEntri->modified_time = getTimeEncode();
+    // newEntri->modified_date = getDateEncode();
     newEntri->filesize = request.buffer_size;
     newEntri->user_attribute = UATTR_NOT_EMPTY;
     newEntri->cluster_low = (uint16_t) cluster_inf;

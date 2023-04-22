@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "kernel_loader.h": "c",
-        "framebuffer.h": "c"
+        "framebuffer.h": "c",
+        "stdtype.h": "c"
     }
 }

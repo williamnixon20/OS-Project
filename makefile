@@ -20,10 +20,7 @@ LFLAGS        = -T $(SOURCE_FOLDER)/linker.ld -melf_i386
 
 run: all
 	@echo if you havent already, please run make disk first
-	@qemu-system-i386 -s -drive file=${OUTPUT_FOLDER}/storage.bin,format=raw,if=ide,index=0,media=disk  -cdrom $(OUTPUT_FOLDER)/$(ISO_NAME).iso
-
-	# @qemu-system-i386 -s -S -drive file=${OUTPUT_FOLDER}/storage.bin,format=raw,if=ide,index=0,media=disk -cdrom $(OUTPUT_FOLDER)/$(ISO_NAME).iso
-	
+	@qemu-system-i386 -s -drive file=${OUTPUT_FOLDER}/storage.bin,format=raw,if=ide,index=0,media=disk  -cdrom $(OUTPUT_FOLDER)/$(ISO_NAME).iso	
 all: build
 build: iso
 clean:
@@ -69,3 +66,9 @@ iso: kernel
 	iso
 	@cd ..
 	@rm -r $(OUTPUT_FOLDER)/iso/
+
+inserter:
+	@$(CC) -Wno-builtin-declaration-mismatch -g \
+		$(SOURCE_FOLDER)/stdmem.c $(SOURCE_FOLDER)/filesystem/fat32.c $(SOURCE_FOLDER)/filesystem/cmostime.c $(SOURCE_FOLDER)/portio.c\
+		$(SOURCE_FOLDER)/inserter/external-inserter.c \
+		-o $(OUTPUT_FOLDER)/inserter
