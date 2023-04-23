@@ -1,5 +1,22 @@
+#include "lib-header/stdmem.h"
 #include "lib-header/stdtype.h"
 #include "filesystem/fat32.h"
+#include "user-shell.h"
+
+struct ClusterBuffer cwd;
+struct ClusterBuffer inBuf;
+struct ClusterBuffer outBuf;
+
+int main(void) {
+    memcpy(cwd.buf, "root", 4);
+    while (TRUE) {
+        print_cwd();
+        get_input();
+        print_output();
+    }
+
+    return 0;
+}
 
 void syscall(uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx) {
     __asm__ volatile("mov %0, %%ebx" : /* <Empty> */ : "r"(ebx));
@@ -11,25 +28,32 @@ void syscall(uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx) {
     __asm__ volatile("int $0x30");
 }
 
-int main(void) {
-    struct ClusterBuffer cl           = {0};
-    struct FAT32DriverRequest request = {
-        .buf                   = &cl,
-        .name                  = "ikanaide",
-        .ext                   = "uwu",
-        .parent_cluster_number = ROOT_CLUSTER_NUMBER,
-        .buffer_size           = CLUSTER_SIZE,
-    };
-    int32_t retcode;
-    syscall(0, (uint32_t) &request, (uint32_t) &retcode, 0);
-    if (retcode == 0)
-        syscall(5, (uint32_t) "owo\n", 4, 0xA);
 
-    char buf[16];
-    while (TRUE) {
-        syscall(4, (uint32_t) buf, 16, 0);
-        syscall(5, (uint32_t) buf, 16, 0xA);
+int get_last_idx(char* buff) {
+    int start = 0;
+    while (buff[start] != 0) {
+        start += 1;
     }
+    return start;
+}
 
-    return 0;
+void print_cwd() {
+    int last_index = get_last_idx((char*)cwd.buf);
+    cwd.buf[last_index] = '>';
+    cwd.buf[last_index+1] = '\0';
+    syscall(5, (uint32_t) cwd.buf, 255, 0xA);
+    cwd.buf[last_index] = '\0';
+}   
+
+void get_input() {
+    syscall(4, (uint32_t) inBuf.buf, 255, 0);
+}
+
+void print_output() {
+    memcpy(outBuf.buf, inBuf.buf, CLUSTER_SIZE);
+    int last_index = get_last_idx((char*) outBuf.buf);
+    outBuf.buf[last_index] = '\n';
+    outBuf.buf[last_index+1] = '\0';
+    syscall(5, (uint32_t) outBuf.buf, 255, 0xB);
+    outBuf.buf[last_index] = '\0';
 }
