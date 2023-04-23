@@ -281,11 +281,11 @@ void keyboard_state_deactivate(void)
 void get_keyboard_buffer(char *buf)
 {
   uint8_t buf_idx = 0;
-  while (keyboard_state.keyboard_buffer[buf_idx] != '\0')
-  {
+  while (keyboard_state.keyboard_buffer[buf_idx] != '\0') {
     buf[buf_idx] = keyboard_state.keyboard_buffer[buf_idx];
     buf_idx++;
   }
+  buf[buf_idx] = '\0';
 }
 
 bool is_keyboard_blocking(void)
@@ -295,8 +295,9 @@ bool is_keyboard_blocking(void)
 
 void keyboard_isr(void)
 {
-  if (!keyboard_state.keyboard_input_on)
+  if (!keyboard_state.keyboard_input_on) {
     keyboard_state.buffer_index = 0;
+  }
   else
   {
     uint8_t scancode = in(KEYBOARD_DATA_PORT);

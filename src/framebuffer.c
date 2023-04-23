@@ -21,6 +21,7 @@ void framebuffer_write(uint8_t row, uint8_t col, char c, uint8_t fg, uint8_t bg)
 
 void framebuffer_write_buf(char * buf, uint8_t len, uint8_t color) {
     for (uint8_t idx = 0; idx < len; idx++) {
+        if (buf[idx] == '\0') break;
         if (buf[idx] == '\n') framebuffer_new_line();
         else {
             uint16_t pos = framebuffer_get_cursor();
