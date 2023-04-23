@@ -280,10 +280,11 @@ void keyboard_state_deactivate(void)
 
 void get_keyboard_buffer(char *buf)
 {
-  uint8_t buf_idx;
-  for (buf_idx = 0; buf_idx <= keyboard_state.buffer_index; buf_idx++)
+  uint8_t buf_idx = 0;
+  while (keyboard_state.keyboard_buffer[buf_idx] != '\0')
   {
     buf[buf_idx] = keyboard_state.keyboard_buffer[buf_idx];
+    buf_idx++;
   }
 }
 
@@ -321,11 +322,12 @@ void keyboard_isr(void)
       }
       else if (mapped_char == '\n')
       {
+        keyboard_state.keyboard_buffer[keyboard_state.buffer_index] = '\0';
         framebuffer_new_line();
         keyboard_state_deactivate();
         keyboard_state.buffer_index = 0;
       }
-      else if (mapped_char != '\b')
+      else if (mapped_char != '\b' && keyboard_state.buffer_index < KEYBOARD_BUFFER_SIZE - 1)
       {
         framebuffer_write(row, col, mapped_char, 0xF, 0);
 

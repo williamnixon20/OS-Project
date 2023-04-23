@@ -16,19 +16,19 @@ int main(void) {
     struct FAT32DriverRequest request = {
         .buf                   = &cl,
         .name                  = "ikanaide",
-        .ext                   = "\0\0\0",
+        .ext                   = "uwu",
         .parent_cluster_number = ROOT_CLUSTER_NUMBER,
         .buffer_size           = CLUSTER_SIZE,
     };
     int32_t retcode;
     syscall(0, (uint32_t) &request, (uint32_t) &retcode, 0);
     if (retcode == 0)
-        syscall(5, (uint32_t) "owo\n", 4, 0xF);
+        syscall(5, (uint32_t) "owo\n", 4, 0xA);
 
     char buf[16];
     while (TRUE) {
         syscall(4, (uint32_t) buf, 16, 0);
-        syscall(5, (uint32_t) buf, 16, 0xF);
+        syscall(5, (uint32_t) buf, 16, 0xA);
     }
 
     return 0;

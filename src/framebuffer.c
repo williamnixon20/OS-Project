@@ -27,6 +27,11 @@ void framebuffer_write_buf(char * buf, uint8_t len, uint8_t color) {
             uint8_t row = pos / RESOLUTION_WIDTH;
             uint8_t col = pos % RESOLUTION_WIDTH;
             framebuffer_write(row, col, buf[idx], color, 0x0);
+
+            row = (pos + 1) / RESOLUTION_WIDTH;
+            col = (pos + 1) % RESOLUTION_WIDTH;
+
+            framebuffer_set_cursor(row, col);
         }
     }
 }
