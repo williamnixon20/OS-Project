@@ -29,6 +29,8 @@
  */
 void framebuffer_write(uint8_t row, uint8_t col, char c, uint8_t fg, uint8_t bg);
 
+void framebuffer_write_buf(char * buf, uint8_t len, uint8_t color);
+
 /**
  * Set cursor to specified location. Row and column starts from 0
  * 
@@ -53,6 +55,7 @@ void framebuffer_clear(void);
 */
 uint16_t framebuffer_get_cursor(void);
 
+void framebuffer_new_line(void);
 /**
  * scroll buffer down to one row
 */

@@ -2,6 +2,10 @@
 #define _INTERRUPT_H
 
 #include "../lib-header/stdtype.h"
+#include "./idt.h"
+#include "../filesystem/fat32.h"
+#include "../lib-header/stdmem.h"
+#include "../lib-header/framebuffer.h"
 /* -- PIC constants -- */
 
 // PIC interrupt offset
@@ -137,5 +141,8 @@ void pic_remap(void);
 void main_interrupt_handler(struct CPURegister cpu, uint32_t int_number, struct InterruptStack info);
 
 void activate_keyboard_interrupt(void);
+
+void syscall(struct CPURegister cpu, __attribute__((unused)) struct InterruptStack info);
+
 
 #endif

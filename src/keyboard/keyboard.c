@@ -321,14 +321,8 @@ void keyboard_isr(void)
       }
       else if (mapped_char == '\n')
       {
-        if (row == RESOLUTION_HEIGHT - 1) {
-          framebuffer_scroll();
-          framebuffer_set_cursor(row, 0);
-        } else {
-          row = (row + 1);
-          col = 0;
-          framebuffer_set_cursor(row, col);
-        }
+        framebuffer_new_line();
+        keyboard_state_deactivate();
         keyboard_state.buffer_index = 0;
       }
       else if (mapped_char != '\b')
