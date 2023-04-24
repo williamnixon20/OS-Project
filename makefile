@@ -37,13 +37,13 @@ kernel:
 	@${CC} ${CFLAGS} src/stdmem.c -o bin/stdmem.o -c
 	@${CC} ${CFLAGS} src/gdt.c -o bin/gdt.o -c
 	@${CC} ${CFLAGS} src/interrupt/idt.c -o bin/idt.o -c
-	@${CC} ${CFLAGS} src/interrupt/interrupt.c -o bin/interrupt.o -c
 	@${CC} ${CFLAGS} src/keyboard/keyboard.c -o bin/keyboard.o -c
 	@${ASM} ${AFLAGS} src/interrupt/intsetup.s -o bin/intsetup.o 
 	@${CC} ${CFLAGS} src/filesystem/disk.c -o bin/disk.o -c
 	@${CC} ${CFLAGS} src/filesystem/fat32.c -o bin/fat32.o -c
 	@${CC} ${CFLAGS} src/filesystem/cmostime.c -o bin/cmostime.o -c
 	@${CC} ${CFLAGS} src/paging/paging.c -o bin/paging.o -c
+	@${CC} ${CFLAGS} src/interrupt/interrupt.c -o bin/interrupt.o -c
 	@$(LIN) $(LFLAGS) bin/*.o -o $(OUTPUT_FOLDER)/kernel
 	@echo Linking object files and generate elf32...
 	@rm -f *.o

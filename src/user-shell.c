@@ -7,11 +7,100 @@ struct ClusterBuffer cwd;
 struct ClusterBuffer inBuf;
 struct ClusterBuffer outBuf;
 
+struct FAT32DirectoryTable fat_table;
+int cluster_hist[50] = {ROOT_CLUSTER_NUMBER};
+
+int get_last_cluster_index() {
+    int index = 0;
+    while (cluster_hist[index] != 0) {
+        index += 1;
+    }
+    return index;
+}
+
+int get_top() {
+    return cluster_hist[get_last_cluster_index()-1];
+}
+
+int get_top_prev() {
+    return cluster_hist[get_last_cluster_index()-2];
+}
+
+void add_cluster_hist(int new_cluster) {
+    int last_index = get_last_cluster_index();
+    cluster_hist[last_index] = new_cluster;
+}
+
+void pop_cluster_hist() {
+    int last_index = get_last_cluster_index();
+    if (last_index != 1) {
+        cluster_hist[last_index-1] = 0;
+    }
+}
+
+struct FAT32DirectoryEntry* dirtable_shell_linear_search(struct FAT32DirectoryEntry *dir_table, char* name, char* ext, bool _isFile){
+    for (uint8_t i = 0; i < CLUSTER_SIZE / sizeof(struct FAT32DirectoryEntry); i++) {
+        bool sameFileName = memcmp(dir_table[i].name, name, 8) == 0;
+        bool sameExt = memcmp(dir_table[i].ext, ext, 3) == 0;
+        bool isFile = dir_table[i].attribute != ATTR_SUBDIRECTORY;
+        if (sameFileName && sameExt && isFile == _isFile) {
+            return &dir_table[i];
+        }
+    }
+    return 0;
+}
+
+
+void change_dir() {
+    fill_table_entry();
+    // ls ____ start from 3, maju sampai endl
+    int start_ind = 3;
+    struct ClusterBuffer dir_cd;
+    clear_buffer(dir_cd.buf);
+    while (inBuf.buf[start_ind] != 0) {
+        dir_cd.buf[start_ind-3] = inBuf.buf[start_ind];
+        start_ind += 1;
+    }
+    if (memcmp(dir_cd.buf, "..", 2) == 0) {
+        addBuf(outBuf.buf, "OK, went back.");
+        pop_cluster_hist();
+        fill_table_entry();
+        return;
+    }
+    struct FAT32DirectoryEntry* dirent = dirtable_shell_linear_search(fat_table.table, (char *) dir_cd.buf, (char*) "\0\0\0", FALSE);
+    if (dirent == 0) {
+        addBuf(outBuf.buf, "Not found or not a dir");
+    } else {
+        addBuf(outBuf.buf, "OK, found");
+        int parent_cluster_number = (((uint32_t) dirent->cluster_high) << 16)|(dirent->cluster_low);    
+        add_cluster_hist(parent_cluster_number);
+        struct FAT32DriverRequest ls_request = {
+        .buf                   = fat_table.table,
+        .name                  = "",
+        .ext                   = "\0\0\0",
+        .parent_cluster_number = get_top_prev(),
+        .buffer_size           = sizeof(fat_table)
+        };
+        memcpy(ls_request.name, dir_cd.buf, 8);
+        // Ambil entry table dari parent.
+        int retcode;
+        syscall(1, (uint32_t) &ls_request, (uint32_t) &retcode, 0);
+        addBuf(outBuf.buf, "OK");
+        parent_cluster_number += retcode;
+    }
+}
+
 int main(void) {
     memcpy(cwd.buf, "root", 4);
+    fill_table_entry();
     while (TRUE) {
         print_cwd();
         get_input();
+        if (memcmp(inBuf.buf, "ls", 2) == 0) {
+            populate_ls();
+        } else if(memcmp(inBuf.buf, "cd", 2) == 0) {
+            change_dir();
+        }
         print_output();
     }
 
@@ -28,8 +117,63 @@ void syscall(uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx) {
     __asm__ volatile("int $0x30");
 }
 
+// void insert_string(char* buff) {
 
-int get_last_idx(char* buff) {
+// }
+
+void fill_table_entry() {
+    int top = get_top();
+    struct FAT32DriverRequest ls_request = {
+        .buf                   = fat_table.table,
+        .name                  = "root",
+        .ext                   = "\0\0\0",
+        .parent_cluster_number = top,
+        .buffer_size           = sizeof(fat_table)
+    };
+    // kalo bukan di root, coba yang lain.
+    if (top != ROOT_CLUSTER_NUMBER) {
+        ls_request.parent_cluster_number = get_top_prev();
+        struct ClusterBuffer temp;
+        clear_buffer(temp.buf);
+        get_cluster_name((char*) temp.buf, get_top());
+        memcpy(ls_request.name, temp.buf, 8);
+        memcpy(ls_request.ext, "\0\0\0", 3);
+    }
+
+    // Ambil entry table dari parent.
+    int retcode;
+    syscall(1, (uint32_t) &ls_request, (uint32_t) &retcode, 0);
+}
+void populate_ls() {
+    fill_table_entry();
+
+    struct ClusterBuffer baru;
+    clear_buffer(baru.buf);
+    // int curr_idx = 0;
+    // Traverse setiap file entry, cek apakah not empty. kalo not empty masukin buffer buat di pritn.
+    for (unsigned int i = 1; i < CLUSTER_SIZE / sizeof(struct FAT32DirectoryEntry); i++) {
+        if (fat_table.table[i].user_attribute == UATTR_NOT_EMPTY) {
+            if(fat_table.table[i].attribute == ATTR_SUBDIRECTORY) {
+                addBuf(baru.buf, "DIR: ");
+                addBuf(baru.buf, fat_table.table[i].name);
+                // memcpy(baru.buf+curr_idx, "DIR: ", 5);
+            } else {
+                addBuf(baru.buf, "FILE: ");
+                addBuf(baru.buf, fat_table.table[i].name);
+                addBuf(baru.buf, ".");
+                addBuf(baru.buf, fat_table.table[i].ext);
+                // memcpy(baru.buf+curr_idx, "FIL: ", 5);
+            }
+            addBuf(baru.buf, "\n");
+        }
+    }
+    // Copy ke output buffer.
+    memcpy(outBuf.buf, baru.buf, CLUSTER_SIZE);
+    // syscall(5, (uint32_t) baru.buf, 255, 0xA);
+};
+
+
+int get_last_idx(unsigned char* buff) {
     int start = 0;
     while (buff[start] != 0) {
         start += 1;
@@ -37,11 +181,46 @@ int get_last_idx(char* buff) {
     return start;
 }
 
+void get_cluster_name(char* buff, int clus_num) {
+    struct FAT32DriverRequest cwd_request = {
+        .buf                   = buff,
+        .name                  = "",
+        .ext                   = "",
+        .parent_cluster_number = clus_num, 
+        .buffer_size           = CLUSTER_SIZE
+        }; 
+    int ret_code;
+    syscall(10, (uint32_t) &cwd_request, (uint32_t) &ret_code, 0);
+}
+
 void print_cwd() {
-    int last_index = get_last_idx((char*)cwd.buf);
+    clear_buffer(cwd.buf);
+    struct ClusterBuffer temp;
+    clear_buffer(temp.buf);
+    addBuf(cwd.buf, "root/");
+
+    for (int i = 1; i< get_last_cluster_index(); i++) {
+        // struct FAT32DriverRequest cwd_request = {
+        // .buf                   = temp.buf,
+        // .name                  = "",
+        // .ext                   = "",
+        // .parent_cluster_number = cluster_hist[i], 
+        // .buffer_size           = CLUSTER_SIZE
+        // }; 
+        // int ret_code;
+        // syscall(10, (uint32_t) &cwd_request, (uint32_t) &ret_code, 0);
+        get_cluster_name((char*)temp.buf, cluster_hist[i]);
+        addBuf(cwd.buf, (char*)temp.buf);
+        if (i != get_last_cluster_index()-1) {
+            addBuf(cwd.buf, "/");
+        }
+        clear_buffer(temp.buf);  
+    }
+
+    int last_index = get_last_idx(cwd.buf);
     cwd.buf[last_index] = '>';
     cwd.buf[last_index+1] = '\0';
-    syscall(5, (uint32_t) cwd.buf, 255, 0xA);
+    syscall(5, (uint32_t) cwd.buf, get_last_idx(cwd.buf), 0xA);
     cwd.buf[last_index] = '\0';
 }   
 
@@ -50,7 +229,29 @@ void get_input() {
 }
 
 void print_output() {
-    memcpy(outBuf.buf, inBuf.buf, CLUSTER_SIZE);
-    syscall(5, (uint32_t) outBuf.buf, 255, 0xB);
-    syscall(5, (uint32_t) "\n", 255, 0xB);
+    // memcpy(outBuf.buf, inBuf.buf, CLUSTER_SIZE);
+    syscall(5, (uint32_t) outBuf.buf, get_last_idx(outBuf.buf), 0xB);
+    syscall(5, (uint32_t) "\n", 2, 0xB);
+    clear_buffer(outBuf.buf);
+}
+
+void clear_buffer(unsigned char* buff) {
+    for (int i = 0; i < CLUSTER_SIZE; i++) {
+        buff[i] = 0;
+    }
+}
+
+void addBuf(unsigned char* buff, char* string) {
+    int index = 0;
+    while (buff[index] != 0) {
+        index += 1;
+    }
+    int str_ind = 0;
+    while (string[str_ind] != 0) {
+        buff[index] = string[str_ind];
+        str_ind += 1;
+        index += 1;
+    }
+    buff[index] = 0;
+    return;
 }

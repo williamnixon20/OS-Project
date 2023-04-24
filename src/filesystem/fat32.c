@@ -427,3 +427,22 @@ struct FAT32DirectoryEntry* dirtable_linear_search(struct FAT32DirectoryEntry *d
     }
     return 0;
 }
+
+void get_dir_string(struct FAT32DriverRequest req) {
+    struct FAT32DirectoryTable parentFolder = {0};
+    read_clusters(&parentFolder, req.parent_cluster_number, 1);
+    memcpy(req.buf, parentFolder.table[0].name, 8);
+    // for (int i = 0; i < 50; i++) {
+    //     if (cluster_hist != 0){
+    //         read_clusters(&parentFolder, cluster_hist[i], 1);
+    //         memcpy(str.buf + index, parentFolder.table[0].name, 8);
+    //         index += 8;
+    //     }
+    // }
+    // for (int i = 0; i < index; i++) {
+    //     if (str.buf[i] == 0) {
+    //         str.buf[i] = " ";
+    //     }
+    // }
+    // return str;
+}

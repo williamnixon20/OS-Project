@@ -107,11 +107,20 @@ void kernel_setup(void) {
     struct FAT32DriverRequest request2 = {
         .buf                   = cbuf,
         .name                  = "ikanaide",
-        .ext                   = "uwu",
+        .ext                   = "\0\0\0",
         .parent_cluster_number = ROOT_CLUSTER_NUMBER,
-        .buffer_size           = CLUSTER_SIZE,
+        .buffer_size           = 0,
     } ;
-    write(request2);  // Create file "ikanaide"
+    write(request2);  // Create folder "ikanaide"
+    struct FAT32DriverRequest request3 = {
+        .buf                   = cbuf,
+        .name                  = "ikanaid2",
+        .ext                   = "\0\0\0",
+        .parent_cluster_number = 5,
+        .buffer_size           = 0,
+    } ;
+    write(request3);  
+    // create folder ikanaide2
 
     // Set TSS $esp pointer and jump into shell 
     set_tss_kernel_current_stack();
