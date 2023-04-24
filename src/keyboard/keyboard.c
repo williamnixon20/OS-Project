@@ -280,11 +280,13 @@ void keyboard_state_deactivate(void)
 
 void get_keyboard_buffer(char *buf)
 {
-  uint8_t buf_idx;
-  for (buf_idx = 0; buf_idx <= keyboard_state.buffer_index; buf_idx++)
+  uint8_t buf_idx = 0;
+  while (keyboard_state.keyboard_buffer[buf_idx] != '\0')
   {
     buf[buf_idx] = keyboard_state.keyboard_buffer[buf_idx];
+    buf_idx++;
   }
+  buf[buf_idx] = '\0';
 }
 
 bool is_keyboard_blocking(void)
@@ -295,7 +297,9 @@ bool is_keyboard_blocking(void)
 void keyboard_isr(void)
 {
   if (!keyboard_state.keyboard_input_on)
+  {
     keyboard_state.buffer_index = 0;
+  }
   else
   {
     uint8_t scancode = in(KEYBOARD_DATA_PORT);
@@ -321,25 +325,14 @@ void keyboard_isr(void)
       }
       else if (mapped_char == '\n')
       {
-        if (row == RESOLUTION_HEIGHT - 1) {
-          framebuffer_scroll();
-          framebuffer_set_cursor(row, 0);
-        } else {
-          row = (row + 1);
-          col = 0;
-          framebuffer_set_cursor(row, col);
-        }
+        keyboard_state.keyboard_buffer[keyboard_state.buffer_index] = '\0';
+        framebuffer_new_line();
+        keyboard_state_deactivate();
         keyboard_state.buffer_index = 0;
       }
-      else if (mapped_char != '\b')
+      else if (mapped_char != '\b' && keyboard_state.buffer_index < KEYBOARD_BUFFER_SIZE - 1)
       {
-        framebuffer_write(row, col, mapped_char, 0xF, 0);
-
-        row = (pos + 1) / RESOLUTION_WIDTH;
-        col = (pos + 1) % RESOLUTION_WIDTH;
-
-        framebuffer_set_cursor(row, col);
-
+        framebuffer_write_buf(&mapped_char, 1, 0xF);
         keyboard_state.buffer_index++;
       }
     }

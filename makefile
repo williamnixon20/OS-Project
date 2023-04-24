@@ -24,7 +24,7 @@ run: all
 all: clean disk inserter insert-shell build
 build: iso
 clean:
-	rm -rf $(OUTPUT_FOLDER)/*.o $(OUTPUT_FOLDER)/*.iso $(OUTPUT_FOLDER)/kernel
+	rm -rf $(OUTPUT_FOLDER)/*.o $(OUTPUT_FOLDER)/*.iso $(OUTPUT_FOLDER)/kernel $(OUTPUT_FOLDER)/storage.bin $(OUTPUT_FOLDER)/shell_elf $(OUTPUT_FOLDER)/shell $(OUTPUT_FOLDER)/inserter
 disk:
 	@qemu-img create -f raw $(OUTPUT_FOLDER)/$(DISK_NAME).bin 4M
 
@@ -37,13 +37,13 @@ kernel:
 	@${CC} ${CFLAGS} src/stdmem.c -o bin/stdmem.o -c
 	@${CC} ${CFLAGS} src/gdt.c -o bin/gdt.o -c
 	@${CC} ${CFLAGS} src/interrupt/idt.c -o bin/idt.o -c
-	@${CC} ${CFLAGS} src/interrupt/interrupt.c -o bin/interrupt.o -c
 	@${CC} ${CFLAGS} src/keyboard/keyboard.c -o bin/keyboard.o -c
 	@${ASM} ${AFLAGS} src/interrupt/intsetup.s -o bin/intsetup.o 
 	@${CC} ${CFLAGS} src/filesystem/disk.c -o bin/disk.o -c
 	@${CC} ${CFLAGS} src/filesystem/fat32.c -o bin/fat32.o -c
 	@${CC} ${CFLAGS} src/filesystem/cmostime.c -o bin/cmostime.o -c
 	@${CC} ${CFLAGS} src/paging/paging.c -o bin/paging.o -c
+	@${CC} ${CFLAGS} src/interrupt/interrupt.c -o bin/interrupt.o -c
 	@$(LIN) $(LFLAGS) bin/*.o -o $(OUTPUT_FOLDER)/kernel
 	@echo Linking object files and generate elf32...
 	@rm -f *.o
@@ -76,12 +76,18 @@ inserter:
 user-shell:
 	@$(ASM) $(AFLAGS) $(SOURCE_FOLDER)/user-entry.s -o user-entry.o
 	@$(CC)  $(CFLAGS) -fno-pie $(SOURCE_FOLDER)/user-shell.c -o user-shell.o
+	@$(CC)  $(CFLAGS) -fno-pie $(SOURCE_FOLDER)/stdmem.c -o stdmem.o
 	@$(LIN) -T $(SOURCE_FOLDER)/user-linker.ld -melf_i386 \
-		user-entry.o user-shell.o -o $(OUTPUT_FOLDER)/shell
+		user-entry.o user-shell.o stdmem.o -o $(OUTPUT_FOLDER)/shell
 	@echo Linking object shell object files and generate flat binary...
+	@$(LIN) -T $(SOURCE_FOLDER)/user-linker.ld -melf_i386 --oformat=elf32-i386\
+		user-entry.o user-shell.o stdmem.o -o $(OUTPUT_FOLDER)/shell_elf
+	@echo Linking object shell object files and generate ELF32 for debugging...
 	@size --target=binary bin/shell
 	@rm -f *.o
 
 insert-shell: inserter user-shell
 	@echo Inserting shell into root directory...
 	@cd $(OUTPUT_FOLDER); ./inserter shell 2 $(DISK_NAME).bin
+
+mil-3: clean disk insert-shell run

@@ -19,6 +19,30 @@ void framebuffer_write(uint8_t row, uint8_t col, char c, uint8_t fg, uint8_t bg)
     memset(where+1, attrib, 1);
 }
 
+void framebuffer_write_buf(char * buf, uint8_t len, uint8_t color) {
+    for (uint8_t idx = 0; idx < len; idx++) {
+        if (buf[idx] == '\0') break;
+        if (buf[idx] == '\n') {
+            framebuffer_new_line();
+        }
+        else {
+            uint16_t pos = framebuffer_get_cursor();
+            uint8_t row = pos / RESOLUTION_WIDTH;
+            uint8_t col = pos % RESOLUTION_WIDTH;
+            framebuffer_write(row, col, buf[idx], color, 0x0);
+
+            if (pos + 1 == RESOLUTION_HEIGHT * RESOLUTION_WIDTH) {
+                framebuffer_scroll();
+                framebuffer_set_cursor(row, 0);
+            } else {
+                row = (pos + 1) / RESOLUTION_WIDTH;
+                col = (pos + 1) % RESOLUTION_WIDTH;
+                framebuffer_set_cursor(row, col);
+            }
+        }
+    }
+}
+
 void framebuffer_clear(void) {
     int size = RESOLUTION_WIDTH * RESOLUTION_HEIGHT;
     uint8_t *where = MEMORY_FRAMEBUFFER;
@@ -26,6 +50,20 @@ void framebuffer_clear(void) {
         memset(where, 0, 1);
         memset(where+1, 0x07, 1);
         where += 2;
+    }
+}
+
+void framebuffer_new_line(void) {
+    uint16_t pos = framebuffer_get_cursor();
+    uint8_t row = pos / RESOLUTION_WIDTH;
+    uint8_t col = pos % RESOLUTION_WIDTH;
+    if (row == RESOLUTION_HEIGHT - 1) {
+        framebuffer_scroll();
+        framebuffer_set_cursor(row, 0);
+    } else {
+        row = (row + 1);
+        col = 0;
+        framebuffer_set_cursor(row, col);
     }
 }
 
@@ -40,14 +78,12 @@ uint16_t framebuffer_get_cursor(void) {
 }
 
 void framebuffer_scroll(void) {
-    uint8_t *where;
-
     /* copying characters */
-    for (int row = 0; row < RESOLUTION_HEIGHT - 1; row++) {
-        for (int col = 0; col < RESOLUTION_WIDTH; col++) {
-            where = MEMORY_FRAMEBUFFER + ((row + 1) * RESOLUTION_WIDTH * 2 + col*2);
-            framebuffer_write(row, col, *where, 0xF, 0x0);
-        }
+    int size = RESOLUTION_WIDTH * RESOLUTION_HEIGHT;
+    uint8_t *where = MEMORY_FRAMEBUFFER;
+    for (int i = 0; i < size - RESOLUTION_WIDTH; i++) {
+        memcpy(where, where + RESOLUTION_WIDTH * 2, sizeof(where));
+        where += 2;
     }
 
     /* clear last row */

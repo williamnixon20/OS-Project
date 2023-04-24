@@ -1,5 +1,5 @@
-#ifndef _STDMEM_H
-#define _STDMEM_H
+#ifndef _STDMEMM_H
+#define _STDMEMM_H
 
 #include "stdtype.h"
 

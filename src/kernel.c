@@ -99,6 +99,29 @@ void kernel_setup(void) {
     };
     read(request);
 
+    struct ClusterBuffer cbuf[5];
+    for (uint32_t i = 0; i < 5; i++)
+        for (uint32_t j = 0; j < CLUSTER_SIZE; j++)
+            cbuf[i].buf[j] = i + 'a';
+
+    struct FAT32DriverRequest request2 = {
+        .buf                   = cbuf,
+        .name                  = "ikanaide",
+        .ext                   = "\0\0\0",
+        .parent_cluster_number = ROOT_CLUSTER_NUMBER,
+        .buffer_size           = 0,
+    } ;
+    write(request2);  // Create folder "ikanaide"
+    struct FAT32DriverRequest request3 = {
+        .buf                   = cbuf,
+        .name                  = "ikanaid2",
+        .ext                   = "\0\0\0",
+        .parent_cluster_number = 5,
+        .buffer_size           = 0,
+    } ;
+    write(request3);  
+    // create folder ikanaide2
+
     // Set TSS $esp pointer and jump into shell 
     set_tss_kernel_current_stack();
     kernel_execute_user_program((uint8_t*) 0);
