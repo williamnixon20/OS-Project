@@ -8,6 +8,7 @@ struct InterruptDescriptorTable interrupt_descriptor_table =
 struct IDTR _idt_idtr = {
     sizeof(interrupt_descriptor_table), &interrupt_descriptor_table};
 
+
 void initialize_idt(void)
 {
     /* TODO :

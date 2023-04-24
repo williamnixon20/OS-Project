@@ -2,6 +2,12 @@
     "files.associations": {
         "kernel_loader.h": "c",
         "framebuffer.h": "c",
-        "stdtype.h": "c"
+        "stdtype.h": "c",
+        "idt.h": "c",
+        "portio.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "enabled",
+    "terminal.integrated.env.linux": {
+        "GTK_PATH": ""
     }
 }
