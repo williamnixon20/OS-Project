@@ -332,18 +332,8 @@ void keyboard_isr(void)
       }
       else if (mapped_char != '\b' && keyboard_state.buffer_index < KEYBOARD_BUFFER_SIZE - 1)
       {
-        framebuffer_write(row, col, mapped_char, 0xF, 0);
-
-        row = (pos + 1) / RESOLUTION_WIDTH;
-        col = (pos + 1) % RESOLUTION_WIDTH;
-
-        framebuffer_set_cursor(row, col);
-
-        keyboard_state.buffer_index++;
-      }
-      else if (mapped_char != '\b' && mapped_char != '\n')
-      {
         framebuffer_write_buf(&mapped_char, 1, 0xF);
+        keyboard_state.buffer_index++;
       }
     }
   }
