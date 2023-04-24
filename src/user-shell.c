@@ -51,9 +51,6 @@ void get_input() {
 
 void print_output() {
     memcpy(outBuf.buf, inBuf.buf, CLUSTER_SIZE);
-    int last_index = get_last_idx((char*) outBuf.buf);
-    outBuf.buf[last_index] = '\n';
-    outBuf.buf[last_index+1] = '\0';
     syscall(5, (uint32_t) outBuf.buf, 255, 0xB);
-    outBuf.buf[last_index] = '\0';
+    syscall(5, (uint32_t) "\n", 255, 0xB);
 }
