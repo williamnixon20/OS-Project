@@ -9,6 +9,8 @@ struct ClusterBuffer outBuf;
 
 struct FAT32DirectoryTable fat_table;
 int cluster_hist[50] = {ROOT_CLUSTER_NUMBER};
+int cluster_whereis[50] = {};
+struct ClusterBuffer temp;
 
 int get_last_cluster_index() {
     int index = 0;
@@ -85,7 +87,6 @@ void change_dir() {
         // Ambil entry table dari parent.
         int retcode;
         syscall(1, (uint32_t) &ls_request, (uint32_t) &retcode, 0);
-        addBuf(outBuf.buf, "OK");
         parent_cluster_number += retcode;
     }
 }
@@ -100,11 +101,87 @@ int main(void) {
             populate_ls();
         } else if(memcmp(inBuf.buf, "cd", 2) == 0) {
             change_dir();
+        } else if(memcmp(inBuf.buf, "mkdir", 5) == 0) {
+            make_dir();
+        } else if (memcmp(inBuf.buf, "whereis", 7) == 0) {
+            where_is();
+        } else {
+            clear_buffer(outBuf.buf);
+            addBuf(outBuf.buf, "wakarimasen...");
         }
         print_output();
     }
 
     return 0;
+}
+void clear_whereis() {
+    for (int i = 0; i < 50; i++) {
+        cluster_whereis[i] = 0;
+    }
+}
+void reconstruct_path() {
+    int index = 0;
+    clear_buffer(outBuf.buf);
+    bool found = FALSE;
+    while (cluster_whereis[index] != 0) {
+        found = TRUE;
+        clear_buffer(temp.buf);
+        get_cluster_name((char *) temp.buf, cluster_whereis[index]);
+        addBuf(outBuf.buf, "/");
+        addBuf(outBuf.buf, (char *) temp.buf);
+        index += 1;
+    }
+    if (!found) {
+        addBuf(outBuf.buf, "Not found");
+    }
+}
+void where_is() {
+    int start_ind = 8;
+    struct ClusterBuffer dir;
+    clear_buffer(dir.buf);
+    clear_buffer(outBuf.buf);
+    while (inBuf.buf[start_ind] != 0) {
+        dir.buf[start_ind-8] = inBuf.buf[start_ind];
+        start_ind += 1;
+    }
+
+    clear_whereis();
+    struct FAT32DriverRequest request = {
+        .buf                   = cluster_whereis,
+        .name                  = "",
+        .ext                   = "\0\0\0",
+        .parent_cluster_number = ROOT_CLUSTER_NUMBER,
+        .buffer_size           = CLUSTER_SIZE,
+    };
+    memcpy(request.name, dir.buf, 8);
+    
+    int retcode;
+    syscall(9, (uint32_t) &request, (uint32_t) &retcode, 0);
+    if (retcode == -1) {
+        clear_whereis();
+    }
+    reconstruct_path();
+}
+
+void make_dir() {
+    int start_ind = 6;
+    struct ClusterBuffer dir;
+    clear_buffer(dir.buf);
+    while (inBuf.buf[start_ind] != 0) {
+        dir.buf[start_ind-6] = inBuf.buf[start_ind];
+        start_ind += 1;
+    }
+
+    struct FAT32DriverRequest request = {
+        .buf                   = (uint8_t*) 0,
+        .name                  = "",
+        .ext                   = "\0\0\0",
+        .parent_cluster_number = get_top(),
+        .buffer_size           = 0,
+    };
+    memcpy(request.name, dir.buf, 8);
+    int retcode;
+    syscall(2, (uint32_t) &request, (uint32_t) &retcode, 0);
 }
 
 void syscall(uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx) {
@@ -133,7 +210,6 @@ void fill_table_entry() {
     // kalo bukan di root, coba yang lain.
     if (top != ROOT_CLUSTER_NUMBER) {
         ls_request.parent_cluster_number = get_top_prev();
-        struct ClusterBuffer temp;
         clear_buffer(temp.buf);
         get_cluster_name((char*) temp.buf, get_top());
         memcpy(ls_request.name, temp.buf, 8);
@@ -197,18 +273,12 @@ void print_cwd() {
     clear_buffer(cwd.buf);
     struct ClusterBuffer temp;
     clear_buffer(temp.buf);
-    addBuf(cwd.buf, "root/");
+    addBuf(cwd.buf, "root");
 
     for (int i = 1; i< get_last_cluster_index(); i++) {
-        // struct FAT32DriverRequest cwd_request = {
-        // .buf                   = temp.buf,
-        // .name                  = "",
-        // .ext                   = "",
-        // .parent_cluster_number = cluster_hist[i], 
-        // .buffer_size           = CLUSTER_SIZE
-        // }; 
-        // int ret_code;
-        // syscall(10, (uint32_t) &cwd_request, (uint32_t) &ret_code, 0);
+        if (i == 1) {
+            addBuf(cwd.buf, "/");
+        }
         get_cluster_name((char*)temp.buf, cluster_hist[i]);
         addBuf(cwd.buf, (char*)temp.buf);
         if (i != get_last_cluster_index()-1) {

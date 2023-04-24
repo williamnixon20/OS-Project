@@ -13,7 +13,9 @@ Kit untuk IF2230 - Sistem Operasi 2023
 
 ## MILESTONE 3
 1. ls -- Done 
-2. cd -- Done for ".." and "dir1". Not yet done for "dir1/dir2/..." yet.
+2. cd -- Done Note: for ".." and "file".
+3. mkdir -- Done
+4. whereis -- Done Note: for name only (no extension)
 
 # How to run
 1. Be on root directory, run `make disk` to generate new disk.
@@ -21,5 +23,5 @@ Kit untuk IF2230 - Sistem Operasi 2023
 3. To execute OS iso, run `make run`
 
 ## Versi Terbaru
-1. Be on root directory, run `make mil-3`
+1. Be on root directory, run `make all`. This will delete all disk and make everything new from scratch. If you want to save the disk/files you have created, run `make run`
 

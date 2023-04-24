@@ -432,17 +432,47 @@ void get_dir_string(struct FAT32DriverRequest req) {
     struct FAT32DirectoryTable parentFolder = {0};
     read_clusters(&parentFolder, req.parent_cluster_number, 1);
     memcpy(req.buf, parentFolder.table[0].name, 8);
-    // for (int i = 0; i < 50; i++) {
-    //     if (cluster_hist != 0){
-    //         read_clusters(&parentFolder, cluster_hist[i], 1);
-    //         memcpy(str.buf + index, parentFolder.table[0].name, 8);
-    //         index += 8;
-    //     }
-    // }
-    // for (int i = 0; i < index; i++) {
-    //     if (str.buf[i] == 0) {
-    //         str.buf[i] = " ";
-    //     }
-    // }
-    // return str;
+    int* arr = req.buf;
+    memcpy(req.buf, arr, 1);
 }
+
+int temp_buf[50] = {};
+int index = 0;
+void clear_temp_buf() {
+    index = 0;
+    for (int i = 0; i < 50; i++) {
+        temp_buf[i] = 0;
+    }
+}
+
+int populate_path(struct FAT32DriverRequest req) {
+    if (req.parent_cluster_number == 2) {
+        clear_temp_buf();
+    }
+    struct FAT32DirectoryTable currFolder = {0};
+    read_clusters(currFolder.table, req.parent_cluster_number, 1);
+    struct FAT32DirectoryEntry* entry =  dirtable_linear_search(currFolder.table, req, FALSE);
+    if (entry) {
+        temp_buf[index] = req.parent_cluster_number;
+        index += 1;
+        memcpy(req.buf, temp_buf, 400);
+        return 1;
+    } else {
+        temp_buf[index] = req.parent_cluster_number;
+        index += 1;
+        for (uint8_t i = 1; i < CLUSTER_SIZE / sizeof(struct FAT32DirectoryEntry); i++) {
+            if (currFolder.table[i].attribute == ATTR_SUBDIRECTORY) {
+                entry = &currFolder.table[i];
+                uint32_t folder_cluster_num =  (((uint32_t) entry->cluster_high) << 16)|(entry->cluster_low);
+                req.parent_cluster_number = folder_cluster_num;
+                int ret_code = populate_path(req);
+                if (ret_code == 1) {
+                    return 1;
+                }
+            }
+        }
+        temp_buf[index-1] = 0;
+        index -= 1;
+    }
+    return -1;
+};

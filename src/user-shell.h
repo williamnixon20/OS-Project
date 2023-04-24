@@ -6,6 +6,7 @@ void print_cwd();
 
 void get_input();
 
+void where_is();
 void print_output();
 void get_cluster_name(char* buff, int clus_num);
 
@@ -14,4 +15,5 @@ void populate_ls();
 void fill_table_entry();
 void addBuf(unsigned char* buff, char* string);
 void clear_buffer(unsigned char* buff);
+void make_dir();
 #endif
