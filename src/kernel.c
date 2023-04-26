@@ -59,7 +59,7 @@
 // //     write(request);  // Create fragmented file "daijoubu"
 
 // //     struct ClusterBuffer readcbuf;
-// //     read_clusters(&readcbuf, ROOT_CLUSTER_NUMBER+1, 1); 
+// //     read_clusters(&readcbuf, ROOT_CLUSTER_NUMBER+1, 1);
 // //     // If read properly, readcbuf should filled with 'a'
 
 // //     request.buffer_size = CLUSTER_SIZE;
@@ -75,7 +75,8 @@
 // //   }
 // }
 
-void kernel_setup(void) {
+void kernel_setup(void)
+{
     enter_protected_mode(&_gdt_gdtr);
     pic_remap();
     initialize_idt();
@@ -87,15 +88,15 @@ void kernel_setup(void) {
     set_tss_register();
 
     // Allocate first 4 MiB virtual memory
-    allocate_single_user_page_frame((uint8_t*) 0);
+    allocate_single_user_page_frame((uint8_t *)0);
 
     // Write shell into memory
     struct FAT32DriverRequest request = {
-        .buf                   = (uint8_t*) 0,
-        .name                  = "shell",
-        .ext                   = "\0\0\0",
+        .buf = (uint8_t *)0,
+        .name = "shell",
+        .ext = "\0\0\0",
         .parent_cluster_number = ROOT_CLUSTER_NUMBER,
-        .buffer_size           = 0x100000,
+        .buffer_size = 0x100000,
     };
     read(request);
 
@@ -103,29 +104,39 @@ void kernel_setup(void) {
     for (uint32_t i = 0; i < 5; i++)
         for (uint32_t j = 0; j < CLUSTER_SIZE; j++)
             cbuf[i].buf[j] = i + 'a';
-
+    struct ClusterBuffer cl = {0};
     struct FAT32DriverRequest request2 = {
-        .buf                   = cbuf,
-        .name                  = "ikanaide",
-        .ext                   = "\0\0\0",
+        .buf = cbuf,
+        .name = "ikanaide",
+        .ext = "\0\0\0",
         .parent_cluster_number = ROOT_CLUSTER_NUMBER,
-        .buffer_size           = 0,
-    } ;
-    write(request2);  // Create folder "ikanaide"
+        .buffer_size = 0,
+    };
+    write(request2); // Create folder "ikanaide"
     struct FAT32DriverRequest request3 = {
-        .buf                   = cbuf,
-        .name                  = "ikanaid2",
-        .ext                   = "\0\0\0",
+        .buf = cbuf,
+        .name = "ikanaid2",
+        .ext = "\0\0\0",
         .parent_cluster_number = 5,
-        .buffer_size           = 0,
-    } ;
-    write(request3);  
+        .buffer_size = 0,
+    };
+    write(request3);
     // create folder ikanaide2
 
-    // Set TSS $esp pointer and jump into shell 
+    struct FAT32DriverRequest request4 = {
+        .buf = &cl,
+        .name = "hontouni",
+        .ext = "\0\0\0",
+        .parent_cluster_number = ROOT_CLUSTER_NUMBER,
+        .buffer_size = CLUSTER_SIZE,
+    };
+    write(request4);
+    // create file hontouni
+
+    // Set TSS $esp pointer and jump into shell
     set_tss_kernel_current_stack();
-    kernel_execute_user_program((uint8_t*) 0);
+    kernel_execute_user_program((uint8_t *)0);
 
-    while (TRUE);
+    while (TRUE)
+        ;
 }
-
