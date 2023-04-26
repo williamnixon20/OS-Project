@@ -104,7 +104,7 @@ void kernel_setup(void)
     for (uint32_t i = 0; i < 5; i++)
         for (uint32_t j = 0; j < CLUSTER_SIZE; j++)
             cbuf[i].buf[j] = i + 'a';
-    struct ClusterBuffer cl = {0};
+
     struct FAT32DriverRequest request2 = {
         .buf = cbuf,
         .name = "ikanaide",
@@ -124,7 +124,7 @@ void kernel_setup(void)
     // create folder ikanaide2
 
     struct FAT32DriverRequest request4 = {
-        .buf = &cl,
+        .buf = cbuf,
         .name = "hontouni",
         .ext = "\0\0\0",
         .parent_cluster_number = ROOT_CLUSTER_NUMBER,

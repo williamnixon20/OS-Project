@@ -122,25 +122,13 @@ void cat()
         .buf = &test,
         .name = "",
         .ext = "\0\0\0",
-        .parent_cluster_number = get_top_prev(),
-        .buffer_size = 0x100000,
+        .parent_cluster_number = get_top(),
+        .buffer_size = CLUSTER_SIZE,
     };
     memcpy(request.name, dir_cd.buf, 8);
+    int32_t retcode;
+    syscall(0, (uint32_t)&request, (uint32_t)&retcode, 0);
     addBuf(outBuf.buf, request.buf);
-    struct FAT32DirectoryEntry *dirent = dirtable_shell_linear_search(fat_table.table, (char *)dir_cd.buf, (char *)"\0\0\0", TRUE);
-
-    if (dirent)
-    {
-        addBuf(outBuf.buf, "The file is found!\n");
-        int32_t retcode;
-        syscall(0, (uint32_t)&request, (uint32_t)&retcode, 0);
-        addBuf(outBuf.buf, request.buf);
-    }
-    else
-    {
-        addBuf(outBuf.buf, "The file doen't exist!");
-    }
-    // still cant show the buffer?
 }
 void cp()
 {
@@ -150,6 +138,8 @@ void cp()
     struct ClusterBuffer dir_cd;
     struct ClusterBuffer source;
     struct ClusterBuffer new;
+    struct ClusterBuffer sourceBuf;
+    struct ClusterBuffer newBuf;
     int start_id = 3;
 
     while (inBuf.buf[start_id] != 0)
@@ -161,38 +151,29 @@ void cp()
 
     // todo : read file kok gamau bzz
     struct FAT32DriverRequest request1 = {
-        .buf = (uint8_t *)0,
+        .buf = &sourceBuf,
         .name = "",
         .ext = "\0\0\0",
         .parent_cluster_number = get_top(),
-        .buffer_size = 0x100000,
+        .buffer_size = CLUSTER_SIZE,
     };
-
-    // write file
-    struct FAT32DriverRequest request2 = {
-        .buf = (uint8_t *)0,
-        .name = "",
-        .ext = "\0\0\0",
-        .parent_cluster_number = get_top(),
-        .buffer_size = 0x1000,
-    };
-    memcpy(request1.name, dir_cd.buf, 16);
-
+    char name[2048];
+    memcpy(name, dir_cd.buf, 2048);
     start_id = 3;
     // get the source
-    while (inBuf.buf[start_id] != 0)
+    bool found = 0;
+    while (inBuf.buf[start_id] != 0 && found == 0)
     {
-        if (request1.name[start_id - 3] != ' ')
+        if (name[start_id - 3] != ' ')
         {
             source.buf[start_id - 3] = inBuf.buf[start_id];
-            start_id += 1;
         }
         else
         {
-            break;
+            found = 1;
         }
+        start_id += 1;
     }
-    start_id += 1;
     // get the copy name
     int i = 0;
     while (inBuf.buf[start_id] != 0)
@@ -201,13 +182,27 @@ void cp()
         start_id += 1;
         i++;
     }
+    // write file
+    struct FAT32DriverRequest request2 = {
+        .buf = &newBuf,
+        .name = "",
+        .ext = "\0\0\0",
+        .parent_cluster_number = get_top(),
+        .buffer_size = CLUSTER_SIZE,
+    };
+    memcpy(request1.name, dir_cd.buf, 8);
+
     memcpy(request2.name, new.buf, 8);
+    clear_buffer(request1.buf);
     memcpy(request1.name, source.buf, 8);
+
+    int retcode;
+    syscall(0, (uint32_t)&request1, (uint32_t)&retcode, 0);
+    request2.buf = request1.buf;
 
     struct FAT32DirectoryEntry *dirent = dirtable_shell_linear_search(fat_table.table, (char *)source.buf, (char *)"\0\0\0", TRUE);
     if (dirent)
     {
-        int retcode;
         syscall(2, (uint32_t)&request2, (uint32_t)&retcode, 0);
     }
     else
@@ -220,8 +215,8 @@ void cp()
 }
 void rm()
 {
-    // msh blm bs keremove :)
     struct ClusterBuffer dir_cd;
+    struct ClusterBuffer temp;
     int start_id = 3;
     while (inBuf.buf[start_id] != 0)
     {
@@ -230,11 +225,11 @@ void rm()
     }
     clear_buffer(outBuf.buf);
     struct FAT32DriverRequest request = {
-        .buf = &dir_cd,
+        .buf = &temp,
         .name = "",
         .ext = "\0\0\0",
         .parent_cluster_number = get_top(),
-        .buffer_size = 0x100000,
+        .buffer_size = CLUSTER_SIZE,
     };
     memcpy(request.name, dir_cd.buf, 8);
     int32_t retcode;
