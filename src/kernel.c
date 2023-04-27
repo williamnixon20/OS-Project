@@ -102,8 +102,12 @@ void kernel_setup(void)
 
     struct ClusterBuffer cbuf[5];
     for (uint32_t i = 0; i < 5; i++)
-        for (uint32_t j = 0; j < CLUSTER_SIZE; j++)
-            cbuf[i].buf[j] = i + 'a';
+        for (uint32_t j = 0; j < CLUSTER_SIZE; j++) {
+            cbuf[i].buf[j] = 'a' + i;
+            if (j % 50 == 0) {
+                cbuf[i].buf[j] = '\n';
+            }
+        }
 
     struct FAT32DriverRequest request2 = {
         .buf = cbuf,
@@ -131,6 +135,15 @@ void kernel_setup(void)
         .buffer_size = CLUSTER_SIZE,
     };
     write(request4);
+
+    struct FAT32DriverRequest request5 = {
+        .buf = cbuf[1].buf,
+        .name = "hontoun2",
+        .ext = "\0\0\0",
+        .parent_cluster_number = ROOT_CLUSTER_NUMBER,
+        .buffer_size = CLUSTER_SIZE,
+    };
+    write(request5);
     // create file hontouni
 
     // Set TSS $esp pointer and jump into shell

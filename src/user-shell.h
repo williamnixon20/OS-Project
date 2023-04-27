@@ -13,7 +13,7 @@ void cat();
 void mv();
 void cp();
 void rm();
-
+void clear_buffer_out();
 void syscall(uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx);
 void populate_ls();
 void fill_table_entry();

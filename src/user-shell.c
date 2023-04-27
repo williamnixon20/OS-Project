@@ -6,6 +6,7 @@
 struct ClusterBuffer cwd;
 struct ClusterBuffer inBuf;
 struct ClusterBuffer outBuf;
+struct ClusterBuffer outBufTest[4];
 
 struct FAT32DirectoryTable fat_table;
 int cluster_hist[50] = {ROOT_CLUSTER_NUMBER};
@@ -108,7 +109,6 @@ void change_dir()
 
 void cat()
 {
-    struct ClusterBuffer test;
     struct ClusterBuffer dir_cd;
     clear_buffer(dir_cd.buf);
     int start_ind = 4;
@@ -118,8 +118,10 @@ void cat()
         start_ind += 1;
     }
     clear_buffer(outBuf.buf);
+    struct ClusterBuffer test;
+    clear_buffer(test.buf);
     struct FAT32DriverRequest request = {
-        .buf = &test,
+        .buf = test.buf,
         .name = "",
         .ext = "\0\0\0",
         .parent_cluster_number = get_top(),
@@ -135,19 +137,57 @@ void cp()
     // format: cp source newfile
     // todo: read the source and copy to the new buffer
     // done: create new file
-    struct ClusterBuffer dir_cd;
     struct ClusterBuffer source;
     struct ClusterBuffer new;
     struct ClusterBuffer sourceBuf;
-    struct ClusterBuffer newBuf;
-    int start_id = 3;
-
-    while (inBuf.buf[start_id] != 0)
+    
+    clear_buffer(outBuf.buf);
+    int start_id = 0;
+    bool found = 0;
+    while (inBuf.buf[start_id+3] != 0 && found == 0)
     {
-        dir_cd.buf[start_id - 3] = inBuf.buf[start_id];
+        if (inBuf.buf[start_id+3] != ' ')
+        {
+            source.buf[start_id] = inBuf.buf[start_id+3];
+        }
+        else
+        {
+            found = 1;
+        }
         start_id += 1;
     }
-    clear_buffer(outBuf.buf);
+
+    // get the copy name
+    int i = 0;
+    while (inBuf.buf[start_id+3] != 0)
+    {
+        new.buf[i] = inBuf.buf[start_id+3];
+        start_id += 1;
+        i++;
+    }
+    
+    if (i == 0) {
+        return;
+    }
+    struct FAT32DirectoryEntry *dirent = dirtable_shell_linear_search(fat_table.table, (char *)source.buf, (char *)"\0\0\0", TRUE);
+    if (!dirent)
+    {
+        addBuf(outBuf.buf, "File is not found! \n");
+        return;
+    }
+
+    // Delete copy
+    struct FAT32DriverRequest request_del = {
+        .buf = 0,
+        .name = "",
+        .ext = "\0\0\0",
+        .parent_cluster_number = get_top(),
+        .buffer_size = 0,
+    };
+    memcpy(request_del.name, new.buf, 8);
+    int32_t retcode;
+    syscall(8, (uint32_t)&request_del, (uint32_t)&retcode, 0);
+
 
     // todo : read file kok gamau bzz
     struct FAT32DriverRequest request1 = {
@@ -157,62 +197,22 @@ void cp()
         .parent_cluster_number = get_top(),
         .buffer_size = CLUSTER_SIZE,
     };
-    char name[2048];
-    memcpy(name, dir_cd.buf, 2048);
-    start_id = 3;
-    // get the source
-    bool found = 0;
-    while (inBuf.buf[start_id] != 0 && found == 0)
-    {
-        if (name[start_id - 3] != ' ')
-        {
-            source.buf[start_id - 3] = inBuf.buf[start_id];
-        }
-        else
-        {
-            found = 1;
-        }
-        start_id += 1;
-    }
-    // get the copy name
-    int i = 0;
-    while (inBuf.buf[start_id] != 0)
-    {
-        new.buf[i] = inBuf.buf[start_id];
-        start_id += 1;
-        i++;
-    }
+    clear_buffer(request1.buf);
+    memcpy(request1.name, source.buf, 8);
+    syscall(0, (uint32_t)&request1, (uint32_t)&retcode, 0);
+
     // write file
     struct FAT32DriverRequest request2 = {
-        .buf = &newBuf,
+        .buf = &sourceBuf,
         .name = "",
         .ext = "\0\0\0",
         .parent_cluster_number = get_top(),
         .buffer_size = CLUSTER_SIZE,
     };
-    memcpy(request1.name, dir_cd.buf, 8);
-
     memcpy(request2.name, new.buf, 8);
-    clear_buffer(request1.buf);
-    memcpy(request1.name, source.buf, 8);
-
-    int retcode;
-    syscall(0, (uint32_t)&request1, (uint32_t)&retcode, 0);
-    request2.buf = request1.buf;
-
-    struct FAT32DirectoryEntry *dirent = dirtable_shell_linear_search(fat_table.table, (char *)source.buf, (char *)"\0\0\0", TRUE);
-    if (dirent)
-    {
-        syscall(2, (uint32_t)&request2, (uint32_t)&retcode, 0);
-    }
-    else
-    {
-        addBuf(outBuf.buf, "File is not found! \n");
-    }
-    clear_buffer(dir_cd.buf);
-    clear_buffer(new.buf);
-    clear_buffer(source.buf);
+    syscall(2, (uint32_t)&request2, (uint32_t)&retcode, 0);
 }
+
 void rm()
 {
     struct ClusterBuffer dir_cd;
@@ -509,9 +509,10 @@ void get_input()
 void print_output()
 {
     // memcpy(outBuf.buf, inBuf.buf, CLUSTER_SIZE);
-    syscall(5, (uint32_t)outBuf.buf, get_last_idx(outBuf.buf), 0xB);
+    syscall(5, (uint32_t)outBuf.buf, CLUSTER_SIZE, 0xB);
     syscall(5, (uint32_t) "\n", 2, 0xB);
     clear_buffer(outBuf.buf);
+    // clear_buffer_out();
 }
 
 void clear_buffer(unsigned char *buff)
@@ -519,6 +520,14 @@ void clear_buffer(unsigned char *buff)
     for (int i = 0; i < CLUSTER_SIZE; i++)
     {
         buff[i] = 0;
+    }
+}
+
+void clear_buffer_out()
+{
+    for (int i = 0; i < 4 * CLUSTER_SIZE; i++)
+    {
+        outBufTest[0].buf[i] = 0;
     }
 }
 
