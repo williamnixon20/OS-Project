@@ -259,10 +259,11 @@ void cp()
     // struct nameStruct arg2;
     // int ret = getFile(3, &arg1, &arg2);
 
-    // // if (ret == 1) {
-    // //     addBuf(outBuf.buf, "Input invalid");
-    // //     return;
-    // // }
+    // if (ret == 1) {
+    //     addBuf(outBuf.buf, "Input invalid");
+    //     return;
+    // }
+
 
     // // clear_buffer(outBuf.buf);
     // // int start_id = 0;
@@ -526,6 +527,9 @@ void make_dir()
     }
     int retcode;
     syscall(2, (uint32_t)&request, (uint32_t)&retcode, 0);
+    if (retcode != 0) {
+        addBuf(outBuf.buf, "Something went wrong");
+    }
 }
 
 void syscall(uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx)
