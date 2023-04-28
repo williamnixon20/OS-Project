@@ -151,7 +151,7 @@ int8_t read_directory(struct FAT32DriverRequest request) {
     if (!entry) {
         return 2;
     } else {
-        entry->access_date = getDateEncode();
+        // entry->access_date = getDateEncode();
         write_clusters(request.buf, parent_cluster, 1);
         uint32_t folder_cluster_num =  (((uint32_t) entry->cluster_high) << 16)|(entry->cluster_low);
         read_clusters(request.buf, folder_cluster_num, 1);
@@ -191,7 +191,7 @@ int8_t read(struct FAT32DriverRequest request) {
     if (entry->filesize > request.buffer_size) {
         return 2;
     }
-    entry->access_date = getDateEncode();
+    // entry->access_date = getDateEncode();
     write_clusters(&parentFolder, request.parent_cluster_number, 1);
 
     uint32_t cluster_file = (((uint32_t)entry->cluster_high) << 16) | entry->cluster_low;
@@ -278,6 +278,8 @@ int8_t write(struct FAT32DriverRequest request) {
     return 0;
 }
 
+
+
 /**
  * FAT32 delete, delete a file or empty directory (only 1 DirectoryEntry) in file system.
  *
@@ -285,7 +287,6 @@ int8_t write(struct FAT32DriverRequest request) {
  * @return Error code: 0 success - 1 not found - 2 folder is not empty - -1 unknown
  */
 int8_t _delete(struct FAT32DriverRequest request) {
-    bool isFile = memcmp(request.ext, "\0\0\0", 3) != 0;
     struct FAT32DirectoryTable parentFolder = {0};
     read_clusters(&parentFolder, request.parent_cluster_number, 1);
     
@@ -293,7 +294,10 @@ int8_t _delete(struct FAT32DriverRequest request) {
         return -1;
     } 
 
-    struct FAT32DirectoryEntry* entry =  dirtable_linear_search(parentFolder.table, request, isFile);
+    struct FAT32DirectoryEntry* entry =  dirtable_linear_search(parentFolder.table, request, TRUE);
+    if (!entry) {
+        entry = dirtable_linear_search(parentFolder.table, request, FALSE);
+    }
     if (entry) {
         if (entry->attribute == ATTR_SUBDIRECTORY) {
             struct FAT32DirectoryTable currentFolder = {0};
@@ -418,7 +422,7 @@ struct FAT32DirectoryEntry* dirtable_linear_search(struct FAT32DirectoryEntry *d
     for (uint8_t i = 0; i < CLUSTER_SIZE / sizeof(struct FAT32DirectoryEntry); i++) {
         bool sameFileName = memcmp(dir_table[i].name, request.name, 8) == 0;
         bool sameExt = TRUE;
-        if (isFile) {
+        if (isFile && memcmp(request.ext, "\0\0\0", 3) != 0) {
             sameExt = memcmp(dir_table[i].ext, request.ext, 3) == 0;
         }
         if (sameFileName && sameExt) {
@@ -427,3 +431,52 @@ struct FAT32DirectoryEntry* dirtable_linear_search(struct FAT32DirectoryEntry *d
     }
     return 0;
 }
+
+void get_dir_string(struct FAT32DriverRequest req) {
+    struct FAT32DirectoryTable parentFolder = {0};
+    read_clusters(&parentFolder, req.parent_cluster_number, 1);
+    memcpy(req.buf, parentFolder.table[0].name, 8);
+    int* arr = req.buf;
+    memcpy(req.buf, arr, 1);
+}
+
+int temp_buf[50] = {};
+int index = 0;
+void clear_temp_buf() {
+    index = 0;
+    for (int i = 0; i < 50; i++) {
+        temp_buf[i] = 0;
+    }
+}
+
+int populate_path(struct FAT32DriverRequest req) {
+    if (req.parent_cluster_number == 2) {
+        clear_temp_buf();
+    }
+    struct FAT32DirectoryTable currFolder = {0};
+    read_clusters(currFolder.table, req.parent_cluster_number, 1);
+    struct FAT32DirectoryEntry* entry =  dirtable_linear_search(currFolder.table, req, FALSE);
+    if (entry) {
+        temp_buf[index] = req.parent_cluster_number;
+        index += 1;
+        memcpy(req.buf, temp_buf, 400);
+        return 1;
+    } else {
+        temp_buf[index] = req.parent_cluster_number;
+        index += 1;
+        for (uint8_t i = 1; i < CLUSTER_SIZE / sizeof(struct FAT32DirectoryEntry); i++) {
+            if (currFolder.table[i].attribute == ATTR_SUBDIRECTORY) {
+                entry = &currFolder.table[i];
+                uint32_t folder_cluster_num =  (((uint32_t) entry->cluster_high) << 16)|(entry->cluster_low);
+                req.parent_cluster_number = folder_cluster_num;
+                int ret_code = populate_path(req);
+                if (ret_code == 1) {
+                    return 1;
+                }
+            }
+        }
+        temp_buf[index-1] = 0;
+        index -= 1;
+    }
+    return -1;
+};

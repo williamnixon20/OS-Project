@@ -93,18 +93,63 @@ void syscall(struct CPURegister cpu, __attribute__((unused)) struct InterruptSta
         struct FAT32DriverRequest request = *(struct FAT32DriverRequest *)cpu.ebx;
         *((int8_t *)cpu.ecx) = read(request);
     }
+    else if (cpu.eax == 1)
+    {
+        struct FAT32DriverRequest request = *(struct FAT32DriverRequest *)cpu.ebx;
+        *((int8_t *)cpu.ecx) = read_directory(request);
+    }
+    else if (cpu.eax == 2)
+    {
+        struct FAT32DriverRequest request = *(struct FAT32DriverRequest *)cpu.ebx;
+        *((int8_t *)cpu.ecx) = write(request);
+    }
     else if (cpu.eax == 4)
     {
+        for (int i = 0; i < 50; i++) {
+            pic_ack(i);
+        }
         keyboard_state_activate();
+        activate_keyboard_interrupt();
         __asm__("sti"); // Due IRQ is disabled when main_interrupt_handler() called
-        while (is_keyboard_blocking())
-            ;
+        while (is_keyboard_blocking());
         char buf[KEYBOARD_BUFFER_SIZE];
         get_keyboard_buffer(buf);
         memcpy((char *)cpu.ebx, buf, cpu.ecx);
+        for (int i = 0; i < 50; i++) {
+            pic_ack(i);
+        }
+        keyboard_state_activate();
+        activate_keyboard_interrupt();
     }
     else if (cpu.eax == 5)
     {
+        for (int i = 0; i < 50; i++) {
+            pic_ack(i);
+        }
+        keyboard_state_activate();
+        activate_keyboard_interrupt();
         framebuffer_write_buf((char *)cpu.ebx, cpu.ecx, cpu.edx); // Modified puts() on kernel side
+        for (int i = 0; i < 50; i++) {
+            pic_ack(i);
+            activate_keyboard_interrupt();
+        }
+        keyboard_state_activate();
+        activate_keyboard_interrupt();
+    }
+    else if (cpu.eax == 8)
+    {
+        struct FAT32DriverRequest request = *(struct FAT32DriverRequest *)cpu.ebx;
+        *((int8_t *)cpu.ecx) = _delete(request);
+    }
+    else if (cpu.eax == 9)
+    {
+        struct FAT32DriverRequest request = *(struct FAT32DriverRequest *)cpu.ebx;
+        *((int8_t *)cpu.ecx) = populate_path(request);
+    }
+    else if (cpu.eax == 10)
+    {
+        // // GET CWD in string
+        struct FAT32DriverRequest request = *(struct FAT32DriverRequest *)cpu.ebx;
+        get_dir_string(request);
     }
 }

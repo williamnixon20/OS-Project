@@ -18,10 +18,10 @@ AFLAGS        = -f elf32 -g -F dwarf
 LFLAGS        = -T $(SOURCE_FOLDER)/linker.ld -melf_i386
 
 
-run: all
+run:
 	@echo if you havent already, please run make disk first
 	@qemu-system-i386 -s -drive file=${OUTPUT_FOLDER}/storage.bin,format=raw,if=ide,index=0,media=disk  -cdrom $(OUTPUT_FOLDER)/$(ISO_NAME).iso	
-all: build
+all: clean disk inserter insert-shell build run
 build: iso
 clean:
 	rm -rf $(OUTPUT_FOLDER)/*.o $(OUTPUT_FOLDER)/*.iso $(OUTPUT_FOLDER)/kernel $(OUTPUT_FOLDER)/storage.bin $(OUTPUT_FOLDER)/shell_elf $(OUTPUT_FOLDER)/shell $(OUTPUT_FOLDER)/inserter
@@ -37,13 +37,13 @@ kernel:
 	@${CC} ${CFLAGS} src/stdmem.c -o bin/stdmem.o -c
 	@${CC} ${CFLAGS} src/gdt.c -o bin/gdt.o -c
 	@${CC} ${CFLAGS} src/interrupt/idt.c -o bin/idt.o -c
-	@${CC} ${CFLAGS} src/interrupt/interrupt.c -o bin/interrupt.o -c
 	@${CC} ${CFLAGS} src/keyboard/keyboard.c -o bin/keyboard.o -c
 	@${ASM} ${AFLAGS} src/interrupt/intsetup.s -o bin/intsetup.o 
 	@${CC} ${CFLAGS} src/filesystem/disk.c -o bin/disk.o -c
 	@${CC} ${CFLAGS} src/filesystem/fat32.c -o bin/fat32.o -c
 	@${CC} ${CFLAGS} src/filesystem/cmostime.c -o bin/cmostime.o -c
 	@${CC} ${CFLAGS} src/paging/paging.c -o bin/paging.o -c
+	@${CC} ${CFLAGS} src/interrupt/interrupt.c -o bin/interrupt.o -c
 	@$(LIN) $(LFLAGS) bin/*.o -o $(OUTPUT_FOLDER)/kernel
 	@echo Linking object files and generate elf32...
 	@rm -f *.o
@@ -89,5 +89,3 @@ user-shell:
 insert-shell: inserter user-shell
 	@echo Inserting shell into root directory...
 	@cd $(OUTPUT_FOLDER); ./inserter shell 2 $(DISK_NAME).bin
-
-mil-3: clean disk insert-shell run

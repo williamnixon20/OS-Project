@@ -19,9 +19,9 @@ void framebuffer_write(uint8_t row, uint8_t col, char c, uint8_t fg, uint8_t bg)
     memset(where+1, attrib, 1);
 }
 
-void framebuffer_write_buf(char * buf, uint8_t len, uint8_t color) {
-    for (uint8_t idx = 0; idx < len; idx++) {
-        if (buf[idx] == '\0') break;
+void framebuffer_write_buf(char * buf, uint32_t len, uint8_t color) {
+    for (uint32_t idx = 0; idx < len; idx++) {
+        if (buf[idx] == 0) break;
         if (buf[idx] == '\n') {
             framebuffer_new_line();
         }
