@@ -1,6 +1,11 @@
 #ifndef _SHELL_H
 #define _SHELL_H
 
+struct nameStruct{
+    char name[8];
+    char ext[3];
+};
+
 int get_last_idx(unsigned char *buff);
 void print_cwd();
 
@@ -20,4 +25,5 @@ void fill_table_entry();
 void addBuf(unsigned char *buff, char *string);
 void clear_buffer(unsigned char *buff);
 void make_dir();
+int getFile(int start_ind, struct nameStruct *file1, struct nameStruct *file2);
 #endif

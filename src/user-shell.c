@@ -48,14 +48,16 @@ void pop_cluster_hist()
     }
 }
 
-struct FAT32DirectoryEntry *dirtable_shell_linear_search(struct FAT32DirectoryEntry *dir_table, char *name, char *ext, bool _isFile)
+struct FAT32DirectoryEntry *dirtable_shell_linear_search(struct FAT32DirectoryEntry *dir_table, char *name, char *ext, bool isFile)
 {
     for (uint8_t i = 0; i < CLUSTER_SIZE / sizeof(struct FAT32DirectoryEntry); i++)
     {
         bool sameFileName = memcmp(dir_table[i].name, name, 8) == 0;
         bool sameExt = memcmp(dir_table[i].ext, ext, 3) == 0;
-        bool isFile = dir_table[i].attribute != ATTR_SUBDIRECTORY;
-        if (sameFileName && sameExt && isFile == _isFile)
+        bool sameType = (dir_table[i].attribute != ATTR_SUBDIRECTORY) == isFile;
+        // Wild card, whatever extension
+        if (memcmp(ext, "\0\0\0", 3) == 0) sameExt = TRUE;
+        if (sameFileName && sameExt && sameType)
         {
             return &dir_table[i];
         }
@@ -69,12 +71,14 @@ void change_dir()
     // ls ____ start from 3, maju sampai endl
     int start_ind = 3;
     struct ClusterBuffer dir_cd;
+
     clear_buffer(dir_cd.buf);
     while (inBuf.buf[start_ind] != 0)
     {
         dir_cd.buf[start_ind - 3] = inBuf.buf[start_ind];
         start_ind += 1;
     }
+
     if (memcmp(dir_cd.buf, "..", 2) == 0)
     {
         addBuf(outBuf.buf, "OK, went back.");
@@ -82,7 +86,16 @@ void change_dir()
         fill_table_entry();
         return;
     }
-    struct FAT32DirectoryEntry *dirent = dirtable_shell_linear_search(fat_table.table, (char *)dir_cd.buf, (char *)"\0\0\0", FALSE);
+
+    struct nameStruct arg;
+    int ret = getFile(3, &arg, 0);
+
+    if (ret == 1) {
+        addBuf(outBuf.buf, "Invalid Input format\n");
+        return;
+    }
+
+    struct FAT32DirectoryEntry *dirent = dirtable_shell_linear_search(fat_table.table, (char *)arg.name, "\0\0\0", FALSE);
     if (dirent == 0)
     {
         addBuf(outBuf.buf, "Not found or not a dir");
@@ -107,48 +120,84 @@ void change_dir()
     }
 }
 
-void cat()
-{
-    struct ClusterBuffer dir_cd;
-    clear_buffer(dir_cd.buf);
-    int start_ind = 4;
-    while (inBuf.buf[start_ind] != 0)
-    {
-        dir_cd.buf[start_ind - 4] = inBuf.buf[start_ind];
-        start_ind += 1;
-    }
+void cat(){
     clear_buffer(outBuf.buf);
-    struct ClusterBuffer test;
-    clear_buffer(test.buf);
+
+    struct nameStruct arg;
+    int ret = getFile(4, &arg, 0);
+
+    if (ret == 1) {
+        addBuf(outBuf.buf, "Invalid input");
+        return;
+    }
+
+    // struct ClusterBuffer test[4];
+    // clear_buffer(test.buf);
     struct FAT32DriverRequest request = {
-        .buf = test.buf,
+        .buf = outBufTest,
         .name = "",
         .ext = "\0\0\0",
         .parent_cluster_number = get_top(),
-        .buffer_size = CLUSTER_SIZE,
+        .buffer_size = 4*CLUSTER_SIZE,
     };
-    memcpy(request.name, dir_cd.buf, 8);
+    memcpy(request.name, arg.name, 8);
+    memcpy(request.ext, arg.ext, 3);
+
     int32_t retcode;
     syscall(0, (uint32_t)&request, (uint32_t)&retcode, 0);
-    addBuf(outBuf.buf, request.buf);
+    // addBuf(outBufTest.buf, test.buf);
+    if (retcode != 0) {
+        addBuf(outBuf.buf, "Something went wrong! Probably file not found or size exceeds 4 cluster.");
+    } else {
+        // addBuf(outBuf.buf, request.buf);
+    }
 }
-void cp()
-{
-    // format: cp source newfile
-    // todo: read the source and copy to the new buffer
-    // done: create new file
-    struct ClusterBuffer source;
-    struct ClusterBuffer new;
-    struct ClusterBuffer sourceBuf;
-    
-    clear_buffer(outBuf.buf);
-    int start_id = 0;
-    bool found = 0;
-    while (inBuf.buf[start_id+3] != 0 && found == 0)
+
+void clearStruct(struct nameStruct *file) {
+    for (int i = 0; i < 8; i++) {
+        file->name[i] = 0;
+    }
+    for (int i = 0; i < 3; i++) {
+        file->ext[i] = 0;
+    }
+}
+
+
+int getFile(int start_ind, struct nameStruct *file1, struct nameStruct *file2){
+    int start_id = start_ind;
+    bool extension = FALSE;
+    int ext_ind = 0;
+    int name_ind = 0;
+    char detect = 0;
+    bool found = FALSE;
+    clearStruct(file1);
+    if (file2) {
+        detect = ' ';   
+        clearStruct(file2); 
+    }
+
+    // Fill first file
+    while (inBuf.buf[start_id] != 0 && found == 0)
     {
-        if (inBuf.buf[start_id+3] != ' ')
+        // if (inBuf.buf[start_id] == '/') {
+        //     start_id += 1;
+        //     continue;
+        // }
+        if (inBuf.buf[start_id] != detect)
         {
-            source.buf[start_id] = inBuf.buf[start_id+3];
+            if (inBuf.buf[start_id] == '.') {
+                extension = TRUE;
+            } else {
+                if (extension) {
+                    if (ext_ind >= 3) return 1;
+                        file1->ext[ext_ind] = inBuf.buf[start_id];
+                    ext_ind += 1;
+                } else {
+                    if (name_ind >= 8) return 1;
+                    file1->name[name_ind] = inBuf.buf[start_id];
+                    name_ind += 1;
+                }
+            }
         }
         else
         {
@@ -157,83 +206,174 @@ void cp()
         start_id += 1;
     }
 
-    // get the copy name
-    int i = 0;
-    while (inBuf.buf[start_id+3] != 0)
-    {
-        new.buf[i] = inBuf.buf[start_id+3];
-        start_id += 1;
-        i++;
+    if (file2) {
+        extension = FALSE;
+        ext_ind = 0;
+        name_ind = 0;
+        found = FALSE;
+        while (inBuf.buf[start_id] != 0 && found == 0)
+        {
+            // if (inBuf.buf[start_id] == '/') {
+            //     start_id += 1;
+            //     continue;
+            // }
+            if (inBuf.buf[start_id] != 0)
+            {
+                if (inBuf.buf[start_id] == '.') {
+                    extension = TRUE;
+                } else {
+                if (extension) {
+                    if (ext_ind >= 3) return 1;
+                    file2->ext[ext_ind] = inBuf.buf[start_id];
+                    ext_ind += 1;
+                } else {
+                    if (name_ind >= 8) return 1;
+                    file2->name[name_ind] = inBuf.buf[start_id];
+                    name_ind += 1;
+                }
+                }
+            }
+            else
+            {
+                found = 1;
+            }
+            start_id += 1;
+        }
+    } 
+    if (start_id==start_ind || name_ind == 0) {
+        return 1;
     }
+    return 0;
+}
+
+void cp()
+{
+    // // format: cp source newfile
+    // // todo: read the source and copy to the new buffer
+    // // done: create new file
+    // struct ClusterBuffer source;
+    // struct ClusterBuffer new;
+    // struct ClusterBuffer sourceBuf;
     
-    if (i == 0) {
-        return;
-    }
-    struct FAT32DirectoryEntry *dirent = dirtable_shell_linear_search(fat_table.table, (char *)source.buf, (char *)"\0\0\0", TRUE);
-    if (!dirent)
-    {
-        addBuf(outBuf.buf, "File is not found! \n");
+    // struct nameStruct arg1;
+    // struct nameStruct arg2;
+    // int ret = getFile(3, &arg1, &arg2);
+
+    // // if (ret == 1) {
+    // //     addBuf(outBuf.buf, "Input invalid");
+    // //     return;
+    // // }
+
+    // // clear_buffer(outBuf.buf);
+    // // int start_id = 0;
+    // // bool found = 0;
+    // // while (inBuf.buf[start_id+3] != 0 && found == 0)
+    // // {
+    // //     if (inBuf.buf[start_id+3] != ' ')
+    // //     {
+    // //         source.buf[start_id] = inBuf.buf[start_id+3];
+    // //     }
+    // //     else
+    // //     {
+    // //         found = 1;
+    // //     }
+    // //     start_id += 1;
+    // // }
+
+    // // // get the copy name
+    // // int i = 0;
+    // // while (inBuf.buf[start_id+3] != 0)
+    // // {
+    // //     new.buf[i] = inBuf.buf[start_id+3];
+    // //     start_id += 1;
+    // //     i++;
+    // // }
+    
+    // // if (i == 0) {
+    // //     return;
+    // // }
+
+    // // CHECK FOR ".."
+
+    // struct FAT32DirectoryEntry *dirent = dirtable_shell_linear_search(fat_table.table, arg1.name, arg1.txt, TRUE);
+    // if (!dirent)
+    // {
+    //     addBuf(outBuf.buf, "File is not found! \n");
+    //     return;
+    // }
+    // struct FAT32DirectoryEntry *direntFile = dirtable_shell_linear_search(fat_table.table, arg2.name, arg2.ext, TRUE);
+    // struct FAT32DirectoryEntry *direntFolder = dirtable_shell_linear_search(fat_table.table, arg2.name, arg2.ext, FALSE);
+    // // No file or folder exist, just create a new file.
+    // if (!direntFile && !direntFolder) {
+        
+    // // There is file, overwrite
+    // } else if (direntFile) {
+    // // There is folder, move
+    // } else if (direntFolder) {
+
+    // }
+    // // Delete copy
+    // struct FAT32DriverRequest request_del = {
+    //     .buf = 0,
+    //     .name = "",
+    //     .ext = "\0\0\0",
+    //     .parent_cluster_number = get_top(),
+    //     .buffer_size = 0,
+    // };
+    // memcpy(request_del.name, new.buf, 8);
+    // int32_t retcode;
+    // syscall(8, (uint32_t)&request_del, (uint32_t)&retcode, 0);
+
+
+    // // todo : read file kok gamau bzz
+    // struct FAT32DriverRequest request1 = {
+    //     .buf = &sourceBuf,
+    //     .name = "",
+    //     .ext = "\0\0\0",
+    //     .parent_cluster_number = get_top(),
+    //     .buffer_size = CLUSTER_SIZE,
+    // };
+    // clear_buffer(request1.buf);
+    // memcpy(request1.name, source.buf, 8);
+    // syscall(0, (uint32_t)&request1, (uint32_t)&retcode, 0);
+
+    // // write file
+    // struct FAT32DriverRequest request2 = {
+    //     .buf = &sourceBuf,
+    //     .name = "",
+    //     .ext = "\0\0\0",
+    //     .parent_cluster_number = get_top(),
+    //     .buffer_size = CLUSTER_SIZE,
+    // };
+    // memcpy(request2.name, new.buf, 8);
+    // syscall(2, (uint32_t)&request2, (uint32_t)&retcode, 0);
+}
+
+void rm()
+{
+    clear_buffer(outBuf.buf);
+    struct nameStruct arg;
+    int ret = getFile(3, &arg, 0);
+
+    if (ret == 1) {
+        addBuf(outBuf.buf, "Invalid input");
         return;
     }
 
-    // Delete copy
-    struct FAT32DriverRequest request_del = {
+    struct FAT32DriverRequest request = {
         .buf = 0,
         .name = "",
         .ext = "\0\0\0",
         .parent_cluster_number = get_top(),
         .buffer_size = 0,
     };
-    memcpy(request_del.name, new.buf, 8);
-    int32_t retcode;
-    syscall(8, (uint32_t)&request_del, (uint32_t)&retcode, 0);
-
-
-    // todo : read file kok gamau bzz
-    struct FAT32DriverRequest request1 = {
-        .buf = &sourceBuf,
-        .name = "",
-        .ext = "\0\0\0",
-        .parent_cluster_number = get_top(),
-        .buffer_size = CLUSTER_SIZE,
-    };
-    clear_buffer(request1.buf);
-    memcpy(request1.name, source.buf, 8);
-    syscall(0, (uint32_t)&request1, (uint32_t)&retcode, 0);
-
-    // write file
-    struct FAT32DriverRequest request2 = {
-        .buf = &sourceBuf,
-        .name = "",
-        .ext = "\0\0\0",
-        .parent_cluster_number = get_top(),
-        .buffer_size = CLUSTER_SIZE,
-    };
-    memcpy(request2.name, new.buf, 8);
-    syscall(2, (uint32_t)&request2, (uint32_t)&retcode, 0);
-}
-
-void rm()
-{
-    struct ClusterBuffer dir_cd;
-    struct ClusterBuffer temp;
-    int start_id = 3;
-    while (inBuf.buf[start_id] != 0)
-    {
-        dir_cd.buf[start_id - 3] = inBuf.buf[start_id];
-        start_id += 1;
-    }
-    clear_buffer(outBuf.buf);
-    struct FAT32DriverRequest request = {
-        .buf = &temp,
-        .name = "",
-        .ext = "\0\0\0",
-        .parent_cluster_number = get_top(),
-        .buffer_size = CLUSTER_SIZE,
-    };
-    memcpy(request.name, dir_cd.buf, 8);
+    memcpy(request.name, arg.name, 8);
+    memcpy(request.ext, arg.ext, 3);
     int32_t retcode;
     syscall(8, (uint32_t)&request, (uint32_t)&retcode, 0);
+    if (retcode != 0) {
+        addBuf(outBuf.buf, "Something went wrong! File probably not found");
+    }
 }
 
 void mv()
@@ -252,31 +392,31 @@ int main(void)
         {
             populate_ls();
         }
-        else if (memcmp(inBuf.buf, "cd", 2) == 0)
+        else if (memcmp(inBuf.buf, "cd ", 3) == 0)
         {
             change_dir();
         }
-        else if (memcmp(inBuf.buf, "mkdir", 5) == 0)
+        else if (memcmp(inBuf.buf, "mkdir ", 6) == 0)
         {
             make_dir();
         }
-        else if (memcmp(inBuf.buf, "whereis", 7) == 0)
+        else if (memcmp(inBuf.buf, "whereis ", 8) == 0)
         {
             where_is();
         }
-        else if (memcmp(inBuf.buf, "cat", 3) == 0)
+        else if (memcmp(inBuf.buf, "cat ", 4) == 0)
         {
             cat();
         }
-        else if (memcmp(inBuf.buf, "rm", 2) == 0)
+        else if (memcmp(inBuf.buf, "rm ", 3) == 0)
         {
             rm();
         }
-        else if (memcmp(inBuf.buf, "mv", 2) == 0)
+        else if (memcmp(inBuf.buf, "mv ", 3) == 0)
         {
             mv();
         }
-        else if (memcmp(inBuf.buf, "cp", 2) == 0)
+        else if (memcmp(inBuf.buf, "cp ", 3) == 0)
         {
             cp();
         }
@@ -305,7 +445,7 @@ void reconstruct_path()
     while (cluster_whereis[index] != 0)
     {
         found = TRUE;
-        clear_buffer(temp.buf);
+        clear_buffer(temp.buf);  syscall(5, (uint32_t)outBuf.buf, CLUSTER_SIZE, 0xB);
         get_cluster_name((char *)temp.buf, cluster_whereis[index]);
         addBuf(outBuf.buf, "/");
         addBuf(outBuf.buf, (char *)temp.buf);
@@ -318,15 +458,24 @@ void reconstruct_path()
 }
 void where_is()
 {
-    int start_ind = 8;
-    struct ClusterBuffer dir;
-    clear_buffer(dir.buf);
     clear_buffer(outBuf.buf);
-    while (inBuf.buf[start_ind] != 0)
-    {
-        dir.buf[start_ind - 8] = inBuf.buf[start_ind];
-        start_ind += 1;
+    
+    // int start_ind = 8;
+    // struct ClusterBuffer dir;
+    // clear_buffer(dir.buf);
+    // while (inBuf.buf[start_ind] != 0)
+    // {
+    //     dir.buf[start_ind - 8] = inBuf.buf[start_ind];
+    //     start_ind += 1;
+    // }
+    struct nameStruct arg;
+    int ret = getFile(8, &arg, 0);
+    
+    if (ret == 1) {
+        addBuf(outBuf.buf, "Invalid input");
+        return;
     }
+
 
     clear_whereis();
     struct FAT32DriverRequest request = {
@@ -336,7 +485,8 @@ void where_is()
         .parent_cluster_number = ROOT_CLUSTER_NUMBER,
         .buffer_size = CLUSTER_SIZE,
     };
-    memcpy(request.name, dir.buf, 8);
+    memcpy(request.name, arg.name, 8);
+    memcpy(request.ext, arg.ext, 3);
 
     int retcode;
     syscall(9, (uint32_t)&request, (uint32_t)&retcode, 0);
@@ -354,6 +504,10 @@ void make_dir()
     clear_buffer(dir.buf);
     while (inBuf.buf[start_ind] != 0)
     {
+        if (inBuf.buf[start_ind] == '.') {
+            addBuf(outBuf.buf, "Directory cannot contain . or extension");
+            return;
+        }
         dir.buf[start_ind - 6] = inBuf.buf[start_ind];
         start_ind += 1;
     }
@@ -366,6 +520,10 @@ void make_dir()
         .buffer_size = 0,
     };
     memcpy(request.name, dir.buf, 8);
+    if (dir.buf[8] != 0) {
+        addBuf(outBuf.buf, "Name too long");
+        return;
+    }
     int retcode;
     syscall(2, (uint32_t)&request, (uint32_t)&retcode, 0);
 }
@@ -422,26 +580,23 @@ void populate_ls()
 
     struct ClusterBuffer baru;
     clear_buffer(baru.buf);
+    struct ClusterBuffer buff;
     // int curr_idx = 0;
     // Traverse setiap file entry, cek apakah not empty. kalo not empty masukin buffer buat di pritn.
     for (unsigned int i = 1; i < CLUSTER_SIZE / sizeof(struct FAT32DirectoryEntry); i++)
     {
         if (fat_table.table[i].user_attribute == UATTR_NOT_EMPTY)
         {
-            if (fat_table.table[i].attribute == ATTR_SUBDIRECTORY)
-            {
-                addBuf(baru.buf, "DIR: ");
-                addBuf(baru.buf, fat_table.table[i].name);
-                // memcpy(baru.buf+curr_idx, "DIR: ", 5);
-            }
-            else
-            {
-                addBuf(baru.buf, "FILE: ");
-                addBuf(baru.buf, fat_table.table[i].name);
-                addBuf(baru.buf, ".");
-                addBuf(baru.buf, fat_table.table[i].ext);
-                // memcpy(baru.buf+curr_idx, "FIL: ", 5);
-            }
+            if(fat_table.table[i].attribute != ATTR_SUBDIRECTORY) addBuf(baru.buf, "FILE: ");
+            else addBuf(baru.buf, "FOLDER: ");
+            clear_buffer(buff.buf);
+            memcpy(buff.buf, fat_table.table[i].name, 8);
+            addBuf(baru.buf, (char *) buff.buf);
+            clear_buffer(buff.buf);
+            addBuf(baru.buf, " EXT: ");
+            addBuf(baru.buf, fat_table.table[i].ext);
+            // addBuf(baru.buf, " SIZE: ");
+            // addBuf(baru.buf, (char*) ((fat_table.table[i].filesize/CLUSTER_SIZE) + '0'));
             addBuf(baru.buf, "\n");
         }
     }
@@ -509,10 +664,19 @@ void get_input()
 void print_output()
 {
     // memcpy(outBuf.buf, inBuf.buf, CLUSTER_SIZE);
-    syscall(5, (uint32_t)outBuf.buf, CLUSTER_SIZE, 0xB);
+    syscall(5, (uint32_t)outBuf.buf, CLUSTER_SIZE-1, 0xB);
     syscall(5, (uint32_t) "\n", 2, 0xB);
     clear_buffer(outBuf.buf);
-    // clear_buffer_out();
+    if (outBufTest[0].buf[0] != 0) {
+        syscall(5, (uint32_t)outBufTest, (CLUSTER_SIZE*4), 0xB);
+        syscall(5, (uint32_t) "\n", 2, 0xB);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < CLUSTER_SIZE; j++) {
+                outBufTest[i].buf[j] = '\0';
+            }
+        }
+    }
+    clear_buffer_out();
 }
 
 void clear_buffer(unsigned char *buff)

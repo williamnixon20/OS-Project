@@ -23,7 +23,6 @@
 // //   // int mo = month;
 // //   // int yr = year;
 // //   // s =  s + mm + hh + dd + mo + yr;
-
 // //   enter_protected_mode(&_gdt_gdtr);
 // //   pic_remap();
 // //   initialize_idt();
@@ -117,33 +116,33 @@ void kernel_setup(void)
         .buffer_size = 0,
     };
     write(request2); // Create folder "ikanaide"
-    struct FAT32DriverRequest request3 = {
-        .buf = cbuf,
-        .name = "ikanaid2",
-        .ext = "\0\0\0",
-        .parent_cluster_number = 5,
-        .buffer_size = 0,
-    };
-    write(request3);
+    // struct FAT32DriverRequest request3 = {
+    //     .buf = cbuf,
+    //     .name = "ikanaid2",
+    //     .ext = "uwu",
+    //     .parent_cluster_number = 5,
+    //     .buffer_size = 0,
+    // };
+    // write(request3);
     // create folder ikanaide2
 
     struct FAT32DriverRequest request4 = {
         .buf = cbuf,
         .name = "hontouni",
-        .ext = "\0\0\0",
+        .ext = "abc",
         .parent_cluster_number = ROOT_CLUSTER_NUMBER,
-        .buffer_size = CLUSTER_SIZE,
+        .buffer_size = 4*CLUSTER_SIZE,
     };
     write(request4);
+    // struct FAT32DriverRequest request5 = {
+    //     .buf = cbuf,
+    //     .name = "hontouni",
+    //     .ext = "abc",
+    //     .parent_cluster_number = ROOT_CLUSTER_NUMBER,
+    //     .buffer_size = CLUSTER_SIZE,
+    // };
+    // write(request4);
 
-    struct FAT32DriverRequest request5 = {
-        .buf = cbuf[1].buf,
-        .name = "hontoun2",
-        .ext = "\0\0\0",
-        .parent_cluster_number = ROOT_CLUSTER_NUMBER,
-        .buffer_size = CLUSTER_SIZE,
-    };
-    write(request5);
     // create file hontouni
 
     // Set TSS $esp pointer and jump into shell

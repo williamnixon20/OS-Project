@@ -12,14 +12,14 @@ Kit untuk IF2230 - Sistem Operasi 2023
 3. Done crud filesys 
 
 ## MILESTONE 3
-1. ls -- Done 
-2. cd -- Done Note: for ".." and "file".
+1. ls -- Done
+2. cd -- Done
 3. mkdir -- Done
-4. whereis -- Done Note: for name only (no extension)
-5. cat -- Done (No extension, No Multiple Buffer)
-6. rm -- Done (No Extension)
+4. whereis -- Done 
+5. cat -- Done KEYBOARD STUCK IF MULTIPLE BUFFER
+6. rm -- Done 
 7. cp -- Done (No Extension)
-8. mv not done
+8. mv not done (No Extension)
 
 # How to run
 1. Be on root directory, run `make disk` to generate new disk.

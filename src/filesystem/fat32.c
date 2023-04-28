@@ -151,7 +151,7 @@ int8_t read_directory(struct FAT32DriverRequest request) {
     if (!entry) {
         return 2;
     } else {
-        entry->access_date = getDateEncode();
+        // entry->access_date = getDateEncode();
         write_clusters(request.buf, parent_cluster, 1);
         uint32_t folder_cluster_num =  (((uint32_t) entry->cluster_high) << 16)|(entry->cluster_low);
         read_clusters(request.buf, folder_cluster_num, 1);
@@ -191,7 +191,7 @@ int8_t read(struct FAT32DriverRequest request) {
     if (entry->filesize > request.buffer_size) {
         return 2;
     }
-    entry->access_date = getDateEncode();
+    // entry->access_date = getDateEncode();
     write_clusters(&parentFolder, request.parent_cluster_number, 1);
 
     uint32_t cluster_file = (((uint32_t)entry->cluster_high) << 16) | entry->cluster_low;
@@ -285,7 +285,6 @@ int8_t write(struct FAT32DriverRequest request) {
  * @return Error code: 0 success - 1 not found - 2 folder is not empty - -1 unknown
  */
 int8_t _delete(struct FAT32DriverRequest request) {
-    bool isFile = memcmp(request.ext, "\0\0\0", 3) != 0;
     struct FAT32DirectoryTable parentFolder = {0};
     read_clusters(&parentFolder, request.parent_cluster_number, 1);
     
@@ -293,7 +292,10 @@ int8_t _delete(struct FAT32DriverRequest request) {
         return -1;
     } 
 
-    struct FAT32DirectoryEntry* entry =  dirtable_linear_search(parentFolder.table, request, isFile);
+    struct FAT32DirectoryEntry* entry =  dirtable_linear_search(parentFolder.table, request, TRUE);
+    if (!entry) {
+        entry = dirtable_linear_search(parentFolder.table, request, FALSE);
+    }
     if (entry) {
         if (entry->attribute == ATTR_SUBDIRECTORY) {
             struct FAT32DirectoryTable currentFolder = {0};
@@ -418,7 +420,7 @@ struct FAT32DirectoryEntry* dirtable_linear_search(struct FAT32DirectoryEntry *d
     for (uint8_t i = 0; i < CLUSTER_SIZE / sizeof(struct FAT32DirectoryEntry); i++) {
         bool sameFileName = memcmp(dir_table[i].name, request.name, 8) == 0;
         bool sameExt = TRUE;
-        if (isFile) {
+        if (isFile && memcmp(request.ext, "\0\0\0", 3) != 0) {
             sameExt = memcmp(dir_table[i].ext, request.ext, 3) == 0;
         }
         if (sameFileName && sameExt) {
