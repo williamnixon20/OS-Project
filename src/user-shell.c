@@ -593,7 +593,7 @@ void populate_ls()
             memcpy(buff.buf, fat_table.table[i].name, 8);
             addBuf(baru.buf, (char *) buff.buf);
             clear_buffer(buff.buf);
-            addBuf(baru.buf, " EXT: ");
+            if (fat_table.table[i].attribute != ATTR_SUBDIRECTORY) addBuf(baru.buf, " EXT: ");
             addBuf(baru.buf, fat_table.table[i].ext);
             // addBuf(baru.buf, " SIZE: ");
             // addBuf(baru.buf, (char*) ((fat_table.table[i].filesize/CLUSTER_SIZE) + '0'));

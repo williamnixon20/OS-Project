@@ -16,15 +16,16 @@ Kit untuk IF2230 - Sistem Operasi 2023
 2. cd -- Done
 3. mkdir -- Done
 4. whereis -- Done 
-5. cat -- Done KEYBOARD STUCK IF MULTIPLE BUFFER
+5. cat -- Done 
 6. rm -- Done 
 7. cp -- Done (No Extension)
-8. mv not done (No Extension)
+8. mv -- Done (No Extension)
 
 # How to run
 1. Be on root directory, run `make disk` to generate new disk.
 2. Run `make build`.
-3. To execute OS iso, run `make run`
+3. Run `make insert-shell`
+4. To execute OS iso, run `make run`
 
 ## Versi Terbaru
 1. Be on root directory, run `make all`. This will delete all disk and make everything new from scratch. If you want to save the disk/files you have created, run `make run`
