@@ -296,15 +296,14 @@ bool is_keyboard_blocking(void)
 
 void keyboard_isr(void)
 {
+  uint8_t scancode = in(KEYBOARD_DATA_PORT);
   if (!keyboard_state.keyboard_input_on)
   {
     keyboard_state.buffer_index = 0;
   }
   else
   {
-    uint8_t scancode = in(KEYBOARD_DATA_PORT);
     char mapped_char = keyboard_scancode_1_to_ascii_map[scancode];
-    // TODO : Implement scancode processing
     if (mapped_char > 0)
     {
       keyboard_state.keyboard_buffer[keyboard_state.buffer_index] = mapped_char;
