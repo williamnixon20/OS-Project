@@ -25,5 +25,5 @@ void fill_table_entry();
 void addBuf(unsigned char *buff, char *string);
 void clear_buffer(unsigned char *buff);
 void make_dir();
-int getFile(int start_ind, struct nameStruct *file1, struct nameStruct *file2);
+int getFile(int start_ind, struct nameStruct *file1, struct nameStruct *file2, bool single);
 #endif

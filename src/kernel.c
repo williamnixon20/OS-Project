@@ -134,6 +134,14 @@ void kernel_setup(void)
         .buffer_size = 4*CLUSTER_SIZE,
     };
     write(request4);
+    struct FAT32DriverRequest request5 = {
+        .buf = cbuf,
+        .name = "hntpndk\0",
+        .ext = "abc",
+        .parent_cluster_number = 9,
+        .buffer_size = 1*CLUSTER_SIZE,
+    };
+    write(request5);
     // struct FAT32DriverRequest request5 = {
     //     .buf = cbuf,
     //     .name = "hontouni",

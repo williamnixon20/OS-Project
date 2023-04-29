@@ -278,6 +278,8 @@ int8_t write(struct FAT32DriverRequest request) {
     return 0;
 }
 
+
+
 /**
  * FAT32 delete, delete a file or empty directory (only 1 DirectoryEntry) in file system.
  *

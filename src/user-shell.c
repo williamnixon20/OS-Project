@@ -7,6 +7,7 @@ struct ClusterBuffer cwd;
 struct ClusterBuffer inBuf;
 struct ClusterBuffer outBuf;
 struct ClusterBuffer outBufTest[4];
+struct ClusterBuffer tempBuf[50];
 
 struct FAT32DirectoryTable fat_table;
 int cluster_hist[50] = {ROOT_CLUSTER_NUMBER};
@@ -25,7 +26,8 @@ int get_last_cluster_index()
 
 int get_top()
 {
-    return cluster_hist[get_last_cluster_index() - 1];
+    int last_idx = get_last_cluster_index();
+    return cluster_hist[last_idx - 1];
 }
 
 int get_top_prev()
@@ -80,7 +82,11 @@ void change_dir()
     }
 
     if (memcmp(dir_cd.buf, "..", 2) == 0)
-    {
+    {   
+        if (get_top() == ROOT_CLUSTER_NUMBER) {
+            addBuf(outBuf.buf, "Can't go back. Already in root");
+            return;
+        }
         addBuf(outBuf.buf, "OK, went back.");
         pop_cluster_hist();
         fill_table_entry();
@@ -88,7 +94,7 @@ void change_dir()
     }
 
     struct nameStruct arg;
-    int ret = getFile(3, &arg, 0);
+    int ret = getFile(3, &arg, 0, TRUE);
 
     if (ret == 1) {
         addBuf(outBuf.buf, "Invalid Input format\n");
@@ -124,7 +130,7 @@ void cat(){
     clear_buffer(outBuf.buf);
 
     struct nameStruct arg;
-    int ret = getFile(4, &arg, 0);
+    int ret = getFile(4, &arg, 0, TRUE);
 
     if (ret == 1) {
         addBuf(outBuf.buf, "Invalid input");
@@ -155,15 +161,15 @@ void cat(){
 
 void clearStruct(struct nameStruct *file) {
     for (int i = 0; i < 8; i++) {
-        file->name[i] = 0;
+        file->name[i] = '\0';
     }
     for (int i = 0; i < 3; i++) {
-        file->ext[i] = 0;
+        file->ext[i] = '\0';
     }
 }
 
 
-int getFile(int start_ind, struct nameStruct *file1, struct nameStruct *file2){
+int getFile(int start_ind, struct nameStruct *file1, struct nameStruct *file2, bool single){
     int start_id = start_ind;
     bool extension = FALSE;
     int ext_ind = 0;
@@ -171,18 +177,16 @@ int getFile(int start_ind, struct nameStruct *file1, struct nameStruct *file2){
     char detect = 0;
     bool found = FALSE;
     clearStruct(file1);
-    if (file2) {
-        detect = ' ';   
+    if (file2) { 
         clearStruct(file2); 
+    }
+    if (!single) {
+        detect = ' ';  
     }
 
     // Fill first file
     while (inBuf.buf[start_id] != 0 && found == 0)
     {
-        // if (inBuf.buf[start_id] == '/') {
-        //     start_id += 1;
-        //     continue;
-        // }
         if (inBuf.buf[start_id] != detect)
         {
             if (inBuf.buf[start_id] == '.') {
@@ -213,10 +217,6 @@ int getFile(int start_ind, struct nameStruct *file1, struct nameStruct *file2){
         found = FALSE;
         while (inBuf.buf[start_id] != 0 && found == 0)
         {
-            // if (inBuf.buf[start_id] == '/') {
-            //     start_id += 1;
-            //     continue;
-            // }
             if (inBuf.buf[start_id] != 0)
             {
                 if (inBuf.buf[start_id] == '.') {
@@ -247,113 +247,163 @@ int getFile(int start_ind, struct nameStruct *file1, struct nameStruct *file2){
 }
 
 void cp()
-{
-    // // format: cp source newfile
-    // // todo: read the source and copy to the new buffer
-    // // done: create new file
-    // struct ClusterBuffer source;
-    // struct ClusterBuffer new;
-    // struct ClusterBuffer sourceBuf;
+{   
+    clear_buffer(outBuf.buf);
+    struct nameStruct arg1;
+    struct nameStruct arg2;
+    clearStruct(&arg1);
+    clearStruct(&arg2);
+    int ret = getFile(3, &arg1, 0, FALSE);
+
+    // Check validity of first argument;
+    struct FAT32DirectoryEntry *dirent = dirtable_shell_linear_search(fat_table.table, arg1.name, arg1.ext, TRUE);
+    if (!dirent)
+    {
+         addBuf(outBuf.buf, "File is not found! \n");
+         return;
+    }
+    int index = 3;
+    bool found = FALSE;
+    bool back = FALSE;
+    while (!found) {
+        if (inBuf.buf[index] == ' ') found = TRUE;
+        if (inBuf.buf[index] == '\0' || inBuf.buf[index] == '\n') break;
+        index += 1;
+    }
+    // CHECK FOR ".."
+    if (memcmp(&inBuf.buf[index], "..", 2) == 0) back=TRUE;
+    else {
+        ret = getFile(index, &arg2, 0, TRUE);
+    }
     
-    // struct nameStruct arg1;
-    // struct nameStruct arg2;
-    // int ret = getFile(3, &arg1, &arg2);
+    // COPY SOURCE FILE TO TEMP BUF
+    int retcode;
+    int top = get_top();
+    struct FAT32DriverRequest request1 = {
+        .buf = tempBuf->buf,
+        .name = "",
+        .ext = "\0\0\0",
+        .parent_cluster_number = top,
+        .buffer_size = 80 * CLUSTER_SIZE,
+    };
+    memcpy(request1.name, arg1.name, 8);
+    memcpy(request1.ext, arg1.ext, 3);
+    syscall(0, (uint32_t)&request1, (uint32_t)&retcode, 0);
 
-    // // if (ret == 1) {
-    // //     addBuf(outBuf.buf, "Input invalid");
-    // //     return;
-    // // }
+    if (retcode != 0) {
+        addBuf(outBuf.buf, "Something went wrong when reading src file");
+        return;
+    }
 
-    // // clear_buffer(outBuf.buf);
-    // // int start_id = 0;
-    // // bool found = 0;
-    // // while (inBuf.buf[start_id+3] != 0 && found == 0)
-    // // {
-    // //     if (inBuf.buf[start_id+3] != ' ')
-    // //     {
-    // //         source.buf[start_id] = inBuf.buf[start_id+3];
-    // //     }
-    // //     else
-    // //     {
-    // //         found = 1;
-    // //     }
-    // //     start_id += 1;
-    // // }
+    // Write source file back
+    if (back) {
+        if (get_top() == ROOT_CLUSTER_NUMBER) {
+            addBuf(outBuf.buf, "Can't go back. Already in root");
+            return;
+        }
+        struct FAT32DriverRequest request2 = {
+         .buf = tempBuf->buf,
+         .name = "",
+         .ext = "\0\0\0",
+         .parent_cluster_number = get_top_prev(),
+         .buffer_size = dirent->filesize,
+        };
+        memcpy(request2.name, arg1.name, 8);
+        memcpy(request2.ext, arg1.ext, 3);
+        syscall(2, (uint32_t)&request2, (uint32_t)&retcode, 0);
+        if (retcode != 0) {
+            addBuf(outBuf.buf, "Something went wrong when writing to prev directory!");
+            return;
+        }
+        addBuf(outBuf.buf, "Copied file to previous directory!");
+        return;
+    }
 
-    // // // get the copy name
-    // // int i = 0;
-    // // while (inBuf.buf[start_id+3] != 0)
-    // // {
-    // //     new.buf[i] = inBuf.buf[start_id+3];
-    // //     start_id += 1;
-    // //     i++;
-    // // }
-    
-    // // if (i == 0) {
-    // //     return;
-    // // }
+    if (ret == 1) {
+        addBuf(outBuf.buf, "Input invalid");
+        return;
+    }
 
-    // // CHECK FOR ".."
-
-    // struct FAT32DirectoryEntry *dirent = dirtable_shell_linear_search(fat_table.table, arg1.name, arg1.txt, TRUE);
-    // if (!dirent)
-    // {
-    //     addBuf(outBuf.buf, "File is not found! \n");
-    //     return;
-    // }
-    // struct FAT32DirectoryEntry *direntFile = dirtable_shell_linear_search(fat_table.table, arg2.name, arg2.ext, TRUE);
-    // struct FAT32DirectoryEntry *direntFolder = dirtable_shell_linear_search(fat_table.table, arg2.name, arg2.ext, FALSE);
-    // // No file or folder exist, just create a new file.
-    // if (!direntFile && !direntFolder) {
-        
-    // // There is file, overwrite
-    // } else if (direntFile) {
-    // // There is folder, move
-    // } else if (direntFolder) {
-
-    // }
-    // // Delete copy
-    // struct FAT32DriverRequest request_del = {
-    //     .buf = 0,
-    //     .name = "",
-    //     .ext = "\0\0\0",
-    //     .parent_cluster_number = get_top(),
-    //     .buffer_size = 0,
-    // };
-    // memcpy(request_del.name, new.buf, 8);
-    // int32_t retcode;
-    // syscall(8, (uint32_t)&request_del, (uint32_t)&retcode, 0);
-
-
-    // // todo : read file kok gamau bzz
-    // struct FAT32DriverRequest request1 = {
-    //     .buf = &sourceBuf,
-    //     .name = "",
-    //     .ext = "\0\0\0",
-    //     .parent_cluster_number = get_top(),
-    //     .buffer_size = CLUSTER_SIZE,
-    // };
-    // clear_buffer(request1.buf);
-    // memcpy(request1.name, source.buf, 8);
-    // syscall(0, (uint32_t)&request1, (uint32_t)&retcode, 0);
-
-    // // write file
-    // struct FAT32DriverRequest request2 = {
-    //     .buf = &sourceBuf,
-    //     .name = "",
-    //     .ext = "\0\0\0",
-    //     .parent_cluster_number = get_top(),
-    //     .buffer_size = CLUSTER_SIZE,
-    // };
-    // memcpy(request2.name, new.buf, 8);
-    // syscall(2, (uint32_t)&request2, (uint32_t)&retcode, 0);
+    struct FAT32DirectoryEntry *direntFile = dirtable_shell_linear_search(fat_table.table, arg2.name, arg2.ext, TRUE);
+    struct FAT32DirectoryEntry *direntFolder = dirtable_shell_linear_search(fat_table.table, arg2.name, arg2.ext, FALSE);
+    // No file or folder exist, just create a new file.
+    if (!direntFile && !direntFolder) {
+        struct FAT32DriverRequest request3 = {
+         .buf = tempBuf->buf,
+         .name = "",
+         .ext = "\0\0\0",
+         .parent_cluster_number = get_top(),
+         .buffer_size = dirent->filesize,
+        };
+        memcpy(request3.name, arg2.name, 8);
+        memcpy(request3.ext, arg2.ext, 3);
+        syscall(2, (uint32_t)&request3, (uint32_t)&retcode, 0);
+        if (retcode != 0) {
+            addBuf(outBuf.buf, "Something went wrong when creating new file");
+            return;
+        };
+        addBuf(outBuf.buf, "Copied file!");
+        return;
+    // There is file, overwrite
+    } else if (direntFile) {
+        // Delete copy
+        struct FAT32DriverRequest request_del = {
+        .buf = 0,
+        .name = "",
+        .ext = "\0\0\0",
+        .parent_cluster_number = get_top(),
+        .buffer_size = 0,
+        };
+        memcpy(request_del.name, direntFile->name, 8);
+        memcpy(request_del.ext, direntFile->ext, 3);
+        syscall(8, (uint32_t)&request_del, (uint32_t)&retcode, 0);
+        if (retcode != 0) {
+            addBuf(outBuf.buf, "Something went wrong when deleting old file");
+            return;
+        };
+        struct FAT32DriverRequest request3 = {
+         .buf = tempBuf->buf,
+         .name = "",
+         .ext = "\0\0\0",
+         .parent_cluster_number = get_top(),
+         .buffer_size = dirent->filesize,
+        };
+        memcpy(request3.name, arg2.name, 8);
+        memcpy(request3.ext, arg2.ext, 3);
+        syscall(2, (uint32_t)&request3, (uint32_t)&retcode, 0);
+        if (retcode != 0) {
+            addBuf(outBuf.buf, "Something went wrong when creating new file");
+            return;
+        };
+        addBuf(outBuf.buf, "Copied file!");
+        return;
+        // There is folder, move
+    } else if (direntFolder) {
+        uint32_t folder_cluster_num =  (((uint32_t) direntFolder->cluster_high) << 16)|(direntFolder->cluster_low);
+        struct FAT32DriverRequest request2 = {
+         .buf = tempBuf->buf,
+         .name = "",
+         .ext = "\0\0\0",
+         .parent_cluster_number = folder_cluster_num,
+         .buffer_size = dirent->filesize,
+        };
+        memcpy(request2.name, arg1.name, 8);
+        memcpy(request2.ext, arg1.ext, 3);
+        syscall(2, (uint32_t)&request2, (uint32_t)&retcode, 0);
+        if (retcode != 0) {
+            addBuf(outBuf.buf, "Something went wrong when writing to directory!");
+            return;
+        }
+        addBuf(outBuf.buf, "Copied file to directory!");
+        return;
+    }
 }
 
 void rm()
 {
     clear_buffer(outBuf.buf);
     struct nameStruct arg;
-    int ret = getFile(3, &arg, 0);
+    int ret = getFile(3, &arg, 0, TRUE);
 
     if (ret == 1) {
         addBuf(outBuf.buf, "Invalid input");
@@ -378,6 +428,195 @@ void rm()
 
 void mv()
 {
+    clear_buffer(outBuf.buf);
+    struct nameStruct arg1;
+    struct nameStruct arg2;
+    clearStruct(&arg1);
+    clearStruct(&arg2);
+    int ret = getFile(3, &arg1, 0, FALSE);
+
+    // Check validity of first argument;
+    struct FAT32DirectoryEntry *dirent = dirtable_shell_linear_search(fat_table.table, arg1.name, arg1.ext, TRUE);
+    if (!dirent)
+    {
+         addBuf(outBuf.buf, "File is not found! \n");
+         return;
+    }
+    int index = 3;
+    bool found = FALSE;
+    bool back = FALSE;
+    while (!found) {
+        if (inBuf.buf[index] == ' ') found = TRUE;
+        if (inBuf.buf[index] == '\0' || inBuf.buf[index] == '\n') break;
+        index += 1;
+    }
+    // CHECK FOR ".."
+    if (memcmp(&inBuf.buf[index], "..", 2) == 0) back=TRUE;
+    else {
+        ret = getFile(index, &arg2, 0, TRUE);
+    }
+    
+    // COPY SOURCE FILE TO TEMP BUF
+    int retcode;
+    int top = get_top();
+    struct FAT32DriverRequest request1 = {
+        .buf = tempBuf->buf,
+        .name = "",
+        .ext = "\0\0\0",
+        .parent_cluster_number = top,
+        .buffer_size = 80 * CLUSTER_SIZE,
+    };
+    memcpy(request1.name, arg1.name, 8);
+    memcpy(request1.ext, arg1.ext, 3);
+    syscall(0, (uint32_t)&request1, (uint32_t)&retcode, 0);
+
+    if (retcode != 0) {
+        addBuf(outBuf.buf, "Something went wrong when reading src file");
+        return;
+    }
+
+    // Write source file back
+    if (back) {
+        if (get_top() == ROOT_CLUSTER_NUMBER) {
+            addBuf(outBuf.buf, "Can't go back. Already in root");
+            return;
+        }
+        struct FAT32DriverRequest request2 = {
+         .buf = tempBuf->buf,
+         .name = "",
+         .ext = "\0\0\0",
+         .parent_cluster_number = get_top_prev(),
+         .buffer_size = dirent->filesize,
+        };
+        memcpy(request2.name, arg1.name, 8);
+        memcpy(request2.ext, arg1.ext, 3);
+        syscall(2, (uint32_t)&request2, (uint32_t)&retcode, 0);
+        if (retcode != 0) {
+            addBuf(outBuf.buf, "Something went wrong when writing to prev directory!");
+            return;
+        }
+        addBuf(outBuf.buf, "Moved file to previous directory!");
+        struct FAT32DriverRequest request_del = {
+        .buf = 0,
+        .name = "",
+        .ext = "\0\0\0",
+        .parent_cluster_number = get_top(),
+        .buffer_size = 0,
+        };
+        memcpy(request_del.name, dirent->name, 8);
+        memcpy(request_del.ext, dirent->ext, 3);
+        syscall(8, (uint32_t)&request_del, (uint32_t)&retcode, 0);
+        return;
+    }
+
+    if (ret == 1) {
+        addBuf(outBuf.buf, "Input invalid");
+        return;
+    }
+
+    struct FAT32DirectoryEntry *direntFile = dirtable_shell_linear_search(fat_table.table, arg2.name, arg2.ext, TRUE);
+    struct FAT32DirectoryEntry *direntFolder = dirtable_shell_linear_search(fat_table.table, arg2.name, arg2.ext, FALSE);
+    // No file or folder exist, just create a new file.
+    if (!direntFile && !direntFolder) {
+        struct FAT32DriverRequest request3 = {
+         .buf = tempBuf->buf,
+         .name = "",
+         .ext = "\0\0\0",
+         .parent_cluster_number = get_top(),
+         .buffer_size = dirent->filesize,
+        };
+        memcpy(request3.name, arg2.name, 8);
+        memcpy(request3.ext, arg2.ext, 3);
+        syscall(2, (uint32_t)&request3, (uint32_t)&retcode, 0);
+        if (retcode != 0) {
+            addBuf(outBuf.buf, "Something went wrong when creating new file");
+            return;
+        };
+        addBuf(outBuf.buf, "Moved file!");
+        struct FAT32DriverRequest request_del = {
+        .buf = 0,
+        .name = "",
+        .ext = "\0\0\0",
+        .parent_cluster_number = get_top(),
+        .buffer_size = 0,
+        };
+        memcpy(request_del.name, dirent->name, 8);
+        memcpy(request_del.ext, dirent->ext, 3);
+        syscall(8, (uint32_t)&request_del, (uint32_t)&retcode, 0);
+        return;
+    // There is file, overwrite
+    } else if (direntFile) {
+        // Delete copy
+        struct FAT32DriverRequest request_del2 = {
+        .buf = 0,
+        .name = "",
+        .ext = "\0\0\0",
+        .parent_cluster_number = get_top(),
+        .buffer_size = 0,
+        };
+        memcpy(request_del2.name, direntFile->name, 8);
+        memcpy(request_del2.ext, direntFile->ext, 3);
+        syscall(8, (uint32_t)&request_del2, (uint32_t)&retcode, 0);
+        if (retcode != 0) {
+            addBuf(outBuf.buf, "Something went wrong when deleting old file");
+            return;
+        };
+        struct FAT32DriverRequest request3 = {
+         .buf = tempBuf->buf,
+         .name = "",
+         .ext = "\0\0\0",
+         .parent_cluster_number = get_top(),
+         .buffer_size = dirent->filesize,
+        };
+        memcpy(request3.name, arg2.name, 8);
+        memcpy(request3.ext, arg2.ext, 3);
+        syscall(2, (uint32_t)&request3, (uint32_t)&retcode, 0);
+        if (retcode != 0) {
+            addBuf(outBuf.buf, "Something went wrong when creating new file");
+            return;
+        };
+        addBuf(outBuf.buf, "Moved file!");
+        struct FAT32DriverRequest request_del = {
+        .buf = 0,
+        .name = "",
+        .ext = "\0\0\0",
+        .parent_cluster_number = get_top(),
+        .buffer_size = 0,
+        };
+        memcpy(request_del.name, dirent->name, 8);
+        memcpy(request_del.ext, dirent->ext, 3);
+        syscall(8, (uint32_t)&request_del, (uint32_t)&retcode, 0);
+        return;
+        // There is folder, move
+    } else if (direntFolder) {
+        uint32_t folder_cluster_num =  (((uint32_t) direntFolder->cluster_high) << 16)|(direntFolder->cluster_low);
+        struct FAT32DriverRequest request2 = {
+         .buf = tempBuf->buf,
+         .name = "",
+         .ext = "\0\0\0",
+         .parent_cluster_number = folder_cluster_num,
+         .buffer_size = dirent->filesize,
+        };
+        memcpy(request2.name, arg1.name, 8);
+        memcpy(request2.ext, arg1.ext, 3);
+        syscall(2, (uint32_t)&request2, (uint32_t)&retcode, 0);
+        if (retcode != 0) {
+            addBuf(outBuf.buf, "Something went wrong when writing to directory!");
+            return;
+        }
+        addBuf(outBuf.buf, "Moved file to directory!");
+        struct FAT32DriverRequest request_del = {
+        .buf = 0,
+        .name = "",
+        .ext = "\0\0\0",
+        .parent_cluster_number = get_top(),
+        .buffer_size = 0,
+        };
+        memcpy(request_del.name, dirent->name, 8);
+        memcpy(request_del.ext, dirent->ext, 3);
+        syscall(8, (uint32_t)&request_del, (uint32_t)&retcode, 0);
+        return;
+    }
 }
 
 int main(void)
@@ -445,7 +684,7 @@ void reconstruct_path()
     while (cluster_whereis[index] != 0)
     {
         found = TRUE;
-        clear_buffer(temp.buf);  syscall(5, (uint32_t)outBuf.buf, CLUSTER_SIZE, 0xB);
+        clear_buffer(temp.buf);  
         get_cluster_name((char *)temp.buf, cluster_whereis[index]);
         addBuf(outBuf.buf, "/");
         addBuf(outBuf.buf, (char *)temp.buf);
@@ -455,21 +694,15 @@ void reconstruct_path()
     {
         addBuf(outBuf.buf, "Not found");
     }
+    clear_whereis();
 }
 void where_is()
 {
     clear_buffer(outBuf.buf);
     
-    // int start_ind = 8;
-    // struct ClusterBuffer dir;
-    // clear_buffer(dir.buf);
-    // while (inBuf.buf[start_ind] != 0)
-    // {
-    //     dir.buf[start_ind - 8] = inBuf.buf[start_ind];
-    //     start_ind += 1;
-    // }
+
     struct nameStruct arg;
-    int ret = getFile(8, &arg, 0);
+    int ret = getFile(8, &arg, 0, TRUE);
     
     if (ret == 1) {
         addBuf(outBuf.buf, "Invalid input");
@@ -526,6 +759,9 @@ void make_dir()
     }
     int retcode;
     syscall(2, (uint32_t)&request, (uint32_t)&retcode, 0);
+    if (retcode != 0) {
+        addBuf(outBuf.buf, "Something went wrong");
+    }
 }
 
 void syscall(uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx)
@@ -670,11 +906,6 @@ void print_output()
     if (outBufTest[0].buf[0] != 0) {
         syscall(5, (uint32_t)outBufTest, (CLUSTER_SIZE*4), 0xB);
         syscall(5, (uint32_t) "\n", 2, 0xB);
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < CLUSTER_SIZE; j++) {
-                outBufTest[i].buf[j] = '\0';
-            }
-        }
     }
     clear_buffer_out();
 }
@@ -689,9 +920,10 @@ void clear_buffer(unsigned char *buff)
 
 void clear_buffer_out()
 {
-    for (int i = 0; i < 4 * CLUSTER_SIZE; i++)
-    {
-        outBufTest[0].buf[i] = 0;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < CLUSTER_SIZE; j++) {
+            outBufTest[i].buf[j] = '\0';
+        }
     }
 }
 
