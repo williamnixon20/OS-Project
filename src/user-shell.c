@@ -684,7 +684,7 @@ void reconstruct_path()
     while (cluster_whereis[index] != 0)
     {
         found = TRUE;
-        clear_buffer(temp.buf);  syscall(5, (uint32_t)outBuf.buf, CLUSTER_SIZE, 0xB);
+        clear_buffer(temp.buf);  
         get_cluster_name((char *)temp.buf, cluster_whereis[index]);
         addBuf(outBuf.buf, "/");
         addBuf(outBuf.buf, (char *)temp.buf);
@@ -694,19 +694,13 @@ void reconstruct_path()
     {
         addBuf(outBuf.buf, "Not found");
     }
+    clear_whereis();
 }
 void where_is()
 {
     clear_buffer(outBuf.buf);
     
-    // int start_ind = 8;
-    // struct ClusterBuffer dir;
-    // clear_buffer(dir.buf);
-    // while (inBuf.buf[start_ind] != 0)
-    // {
-    //     dir.buf[start_ind - 8] = inBuf.buf[start_ind];
-    //     start_ind += 1;
-    // }
+
     struct nameStruct arg;
     int ret = getFile(8, &arg, 0, TRUE);
     
@@ -835,7 +829,6 @@ void populate_ls()
             memcpy(buff.buf, fat_table.table[i].name, 8);
             addBuf(baru.buf, (char *) buff.buf);
             clear_buffer(buff.buf);
-            addBuf(baru.buf, " EXT: ");
             addBuf(baru.buf, fat_table.table[i].ext);
             // addBuf(baru.buf, " SIZE: ");
             // addBuf(baru.buf, (char*) ((fat_table.table[i].filesize/CLUSTER_SIZE) + '0'));
