@@ -1,31 +1,60 @@
-# kit-OS-2023
-Kit untuk IF2230 - Sistem Operasi 2023
+# kit-OS-2023: IF2230 - Operating Systems Project
 
-# Progress
-## Milestone 1 (100%)
-1. Done build script.
-2. Done GDT, Config, etc.
+A comprehensive kit for **IF2230 - Operating Systems 2023**, focusing on building an x86 Operating System with multiple milestones.
 
-## Milestone 2 
-1. Done interrupts
-2. Done keyboard
-3. Done crud filesys 
+---
 
-## MILESTONE 3
-1. ls -- Done
-2. cd -- Done
-3. mkdir -- Done (No file the same as cwd folder)
-4. whereis -- Done 
-5. cat -- Done (cat file up to 4 frame buffer)
-6. rm -- Done  (delete file, empty folder0
-7. cp -- Done (First argument is file)
-8. mv -- Done (First argument is file)
+## 🛠 Project Overview
 
-# How to run
-1. Be on root directory, run `make disk` to generate new disk.
-2. Run `make build`.
-3. Run `make insert-shell`
-4. To execute OS iso, run `make run`
+**Project Name:** HolOS  
+**Objective:** Development of an x86 Operating System in multiple stages:  
+1. Booting and Protected Mode  
+2. Interrupts, Drivers, and Filesystems  
+3. Shell, Paging, and User Mode  
 
-Alternatively, run `make all`. This will delete all disk and make everything new from scratch. If you want to save the disk/files you have created, run `make run`
+Each milestone involves building fundamental operating system components, progressing from basic kernel setup to a functional user-mode shell.
 
+---
+
+## 🚀 Progress
+
+### **Milestone 1: Booting, Kernel, and Protected Mode (100%)**
+- [x] Completed Build Script Automation
+- [x] Configured GDT and Protected Mode Setup
+- [x] Simple Text Output with Framebuffer
+- [x] Basic Kernel Development in C
+
+### **Milestone 2: Interrupts, Drivers, and Filesystem**
+- [x] Implemented Interrupt Descriptor Table (IDT)
+- [x] Developed Keyboard and Disk Drivers
+- [x] Created Custom Filesystem (FAT32 - IF2230 Edition)
+- [x] Supported Basic Filesystem Operations: CRUD
+
+### **Milestone 3: Shell, Paging, and User Mode**
+- [x] Developed Paging Mechanism and Higher Half Kernel
+- [x] Established User Mode and GDT for Privilege Levels
+- [x] Implemented System Calls for Shell Commands
+- [x] Built-In Shell Commands:
+  - [x] `ls` - List Directory Contents
+  - [x] `cd` - Change Directory
+  - [x] `mkdir` - Create Directory
+  - [x] `whereis` - Search Filesystem
+  - [x] `cat` - Read File Content
+  - [x] `rm` - Remove File/Folder
+  - [x] `cp` - Copy File
+  - [x] `mv` - Move/Rename File/Folder
+
+---
+
+## ⚙️ How to Run
+
+1. Clone the repository and navigate to the root directory.
+2. Generate a new disk image: `make disk`
+3. Build the OS: `make build`
+4. Insert the shell program into the filesystem: `make insert-shell`
+5. Run the OS in QEMU: `make run`
+6. Alternatively, you can run everything from scratch: `make all`
+
+Note: Using make all will erase any existing disk/files. If you want to preserve your disk and files, run make run only.
+
+Thanks to the course assistant team for the support!
